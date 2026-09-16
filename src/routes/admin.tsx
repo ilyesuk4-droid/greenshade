@@ -87,7 +87,7 @@ function PasswordGate({ onOk }: { onOk: () => void }) {
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (pw === ADMIN_PASSWORD) {
+    if (pw.trim() === ADMIN_PASSWORD) {
       sessionStorage.setItem(AUTH_KEY, "1");
       toast.success("Connexion réussie");
       onOk();
@@ -191,9 +191,11 @@ function AdminPage() {
         setInquiries(data as Inquiry[]);
       } else if (error) {
         console.error("Erreur de chargement des demandes:", error);
+        toast.error("Impossible de charger les données (Erreur de permission Supabase ?)");
       }
     } catch (err) {
       console.error("Erreur de chargement des demandes:", err);
+      toast.error("Erreur inattendue lors du chargement des demandes");
     } finally {
       setLoadingInquiries(false);
     }
