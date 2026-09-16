@@ -32,8 +32,8 @@ import utilisationPatch from "@/assets/utilisation-patch.jpg";
 import pharmaciePro from "@/assets/pharmacie-pro.jpg";
 import hydrogelSeparator from "@/assets/hydrogel-separator.jpg";
 import defaultLogo from "@/assets/patchnature-logo.jpeg";
-import defaultPackaging from "@/assets/patchnature-packaging.png";
-import defaultBox from "@/assets/patchnature-box.png";
+import defaultPackaging from "@/assets/patchnature-packaging.jpg";
+import defaultBox from "@/assets/patchnature-box.jpg";
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
@@ -47,6 +47,12 @@ function LandingPage() {
   const logoSrc = settings.logo_url || defaultLogo;
   const heroProductSrc = settings.hero_image_url || defaultBox;
   const secondaryProductSrc = settings.secondary_image_url || defaultPackaging;
+  
+  const heroBgSrc = settings.hero_bg_url || heroBg;
+  const cactusProduitSrc = settings.cactus_produit_url || cactusProduit;
+  const hydrogelSeparatorSrc = settings.hydrogel_separator_url || hydrogelSeparator;
+  const utilisationPatchSrc = settings.utilisation_patch_url || utilisationPatch;
+  const pharmacieProSrc = settings.pharmacie_pro_url || pharmaciePro;
 
   const scrollTo = (id: string) => {
     setMobileMenuOpen(false);
@@ -195,7 +201,7 @@ function LandingPage() {
           {/* Hero Botanical Background Illustration */}
           <div className="absolute inset-0 w-full h-full pointer-events-none select-none z-0 opacity-40">
             <img
-              src={heroBg}
+              src={heroBgSrc}
               alt="Illustration botanique de cladodes de figuier de Barbarie, identité visuelle PatchNature"
               fetchPriority="high"
               loading="eager"
@@ -321,7 +327,7 @@ function LandingPage() {
                   {/* Primary macro image: cladodes with water drops */}
                   <div className="overflow-hidden rounded-2xl shadow-nature border border-white/60 bg-white">
                     <img
-                      src={cactusProduit}
+                      src={cactusProduitSrc}
                       alt="Cladodes de figuier de Barbarie avec gouttelettes d'eau, matière première du patch hydrogel"
                       loading="lazy"
                       className="w-full h-[320px] sm:h-[400px] object-cover hover:scale-102 transition-transform duration-500"
@@ -523,7 +529,7 @@ function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-6">
           <div className="relative rounded-3xl overflow-hidden h-40 sm:h-52 w-full border border-border/60 shadow-sm">
             <img
-              src={hydrogelSeparator}
+              src={hydrogelSeparatorSrc}
               alt="Goutte d'hydrogel sur cladode de figuier de Barbarie"
               loading="lazy"
               className="w-full h-full object-cover object-center opacity-30"
@@ -562,7 +568,7 @@ function LandingPage() {
               <div className="lg:col-span-5">
                 <div className="relative rounded-2xl overflow-hidden shadow-nature border border-white bg-white">
                   <img
-                    src={utilisationPatch}
+                    src={utilisationPatchSrc}
                     alt="Application d'un patch hydrogel PatchNature sur la peau"
                     loading="lazy"
                     className="w-full h-[360px] sm:h-[440px] object-cover"
@@ -682,7 +688,7 @@ function LandingPage() {
 
                   <div className="rounded-2xl overflow-hidden shadow-nature border border-border">
                     <img
-                      src={pharmaciePro}
+                      src={pharmacieProSrc}
                       alt="Pharmacienne disposant des produits naturels sur étagère en officine"
                       loading="lazy"
                       className="w-full h-[260px] sm:h-[320px] object-cover"

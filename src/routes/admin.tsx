@@ -29,9 +29,14 @@ import { useStore, type Settings } from "@/lib/store-context";
 import { WILAYAS } from "@/lib/wilayas";
 
 // Fallback images
+import heroBg from "@/assets/hero-bg.png";
+import cactusProduit from "@/assets/cactus-produit.png";
+import utilisationPatch from "@/assets/utilisation-patch.jpg";
+import pharmaciePro from "@/assets/pharmacie-pro.jpg";
+import hydrogelSeparator from "@/assets/hydrogel-separator.jpg";
 import defaultLogo from "@/assets/patchnature-logo.jpeg";
-import defaultPackaging from "@/assets/patchnature-packaging.png";
-import defaultBox from "@/assets/patchnature-box.png";
+import defaultPackaging from "@/assets/patchnature-packaging.jpg";
+import defaultBox from "@/assets/patchnature-box.jpg";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -816,7 +821,7 @@ function ImagesTab({
 
   const handleUpload = async (
     e: ChangeEvent<HTMLInputElement>,
-    field: "logo_url" | "hero_image_url" | "secondary_image_url"
+    field: "logo_url" | "hero_image_url" | "secondary_image_url" | "hero_bg_url" | "cactus_produit_url" | "hydrogel_separator_url" | "utilisation_patch_url" | "pharmacie_pro_url"
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -868,7 +873,7 @@ function ImagesTab({
     }
   };
 
-  const handleResetToDefault = async (field: "logo_url" | "hero_image_url" | "secondary_image_url") => {
+  const handleResetToDefault = async (field: "logo_url" | "hero_image_url" | "secondary_image_url" | "hero_bg_url" | "cactus_produit_url" | "hydrogel_separator_url" | "utilisation_patch_url" | "pharmacie_pro_url") => {
     try {
       const { error } = await supabase
         .from("settings")
@@ -1026,6 +1031,216 @@ function ImagesTab({
             {settings.secondary_image_url && (
               <button
                 onClick={() => handleResetToDefault("secondary_image_url")}
+                className="text-xs text-muted-foreground hover:text-rose-600 transition-colors block mx-auto pt-1"
+              >
+                Rétablir l'image initiale
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 4. Hero Background */}
+        <div className="bg-white rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-cladode mb-2">
+            Arrière-plan Principal
+          </span>
+          <p className="text-xs text-muted-foreground mb-4">Hero Background</p>
+
+          <div className="w-32 h-32 rounded-2xl bg-linen border border-border/80 p-3 flex items-center justify-center mb-6 shadow-inner">
+            <img
+              src={settings.hero_bg_url || heroBg}
+              alt="Background actuel"
+              className="max-w-full max-h-full object-cover rounded-xl"
+            />
+          </div>
+
+          <div className="w-full space-y-2">
+            <label className="btn-cta text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer w-full">
+              {uploadingField === "hero_bg_url" ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
+              <span>Remplacer l'image</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploadingField !== null}
+                onChange={(e) => handleUpload(e, "hero_bg_url")}
+              />
+            </label>
+            {settings.hero_bg_url && (
+              <button
+                onClick={() => handleResetToDefault("hero_bg_url")}
+                className="text-xs text-muted-foreground hover:text-rose-600 transition-colors block mx-auto pt-1"
+              >
+                Rétablir l'image initiale
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 5. Cactus Produit */}
+        <div className="bg-white rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-cladode mb-2">
+            Macro Cactus
+          </span>
+          <p className="text-xs text-muted-foreground mb-4">Section Notre Produit</p>
+
+          <div className="w-32 h-32 rounded-2xl bg-linen border border-border/80 p-3 flex items-center justify-center mb-6 shadow-inner">
+            <img
+              src={settings.cactus_produit_url || cactusProduit}
+              alt="Cactus actuel"
+              className="max-w-full max-h-full object-cover rounded-xl"
+            />
+          </div>
+
+          <div className="w-full space-y-2">
+            <label className="btn-cta text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer w-full">
+              {uploadingField === "cactus_produit_url" ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
+              <span>Remplacer l'image</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploadingField !== null}
+                onChange={(e) => handleUpload(e, "cactus_produit_url")}
+              />
+            </label>
+            {settings.cactus_produit_url && (
+              <button
+                onClick={() => handleResetToDefault("cactus_produit_url")}
+                className="text-xs text-muted-foreground hover:text-rose-600 transition-colors block mx-auto pt-1"
+              >
+                Rétablir l'image initiale
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 6. Hydrogel Separator */}
+        <div className="bg-white rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-cladode mb-2">
+            Séparateur Hydrogel
+          </span>
+          <p className="text-xs text-muted-foreground mb-4">Goutte d'eau</p>
+
+          <div className="w-32 h-32 rounded-2xl bg-linen border border-border/80 p-3 flex items-center justify-center mb-6 shadow-inner">
+            <img
+              src={settings.hydrogel_separator_url || hydrogelSeparator}
+              alt="Séparateur actuel"
+              className="max-w-full max-h-full object-cover rounded-xl"
+            />
+          </div>
+
+          <div className="w-full space-y-2">
+            <label className="btn-cta text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer w-full">
+              {uploadingField === "hydrogel_separator_url" ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
+              <span>Remplacer l'image</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploadingField !== null}
+                onChange={(e) => handleUpload(e, "hydrogel_separator_url")}
+              />
+            </label>
+            {settings.hydrogel_separator_url && (
+              <button
+                onClick={() => handleResetToDefault("hydrogel_separator_url")}
+                className="text-xs text-muted-foreground hover:text-rose-600 transition-colors block mx-auto pt-1"
+              >
+                Rétablir l'image initiale
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 7. Utilisation Patch */}
+        <div className="bg-white rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-cladode mb-2">
+            Mode d'Utilisation
+          </span>
+          <p className="text-xs text-muted-foreground mb-4">Application sur la peau</p>
+
+          <div className="w-32 h-32 rounded-2xl bg-linen border border-border/80 p-3 flex items-center justify-center mb-6 shadow-inner">
+            <img
+              src={settings.utilisation_patch_url || utilisationPatch}
+              alt="Utilisation actuelle"
+              className="max-w-full max-h-full object-cover rounded-xl"
+            />
+          </div>
+
+          <div className="w-full space-y-2">
+            <label className="btn-cta text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer w-full">
+              {uploadingField === "utilisation_patch_url" ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
+              <span>Remplacer l'image</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploadingField !== null}
+                onChange={(e) => handleUpload(e, "utilisation_patch_url")}
+              />
+            </label>
+            {settings.utilisation_patch_url && (
+              <button
+                onClick={() => handleResetToDefault("utilisation_patch_url")}
+                className="text-xs text-muted-foreground hover:text-rose-600 transition-colors block mx-auto pt-1"
+              >
+                Rétablir l'image initiale
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 8. Pharmacie Pro */}
+        <div className="bg-white rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center text-center">
+          <span className="text-xs font-bold uppercase tracking-wider text-cladode mb-2">
+            Espace Pro
+          </span>
+          <p className="text-xs text-muted-foreground mb-4">Image pharmacienne</p>
+
+          <div className="w-32 h-32 rounded-2xl bg-linen border border-border/80 p-3 flex items-center justify-center mb-6 shadow-inner">
+            <img
+              src={settings.pharmacie_pro_url || pharmaciePro}
+              alt="Pharmacie actuelle"
+              className="max-w-full max-h-full object-cover rounded-xl"
+            />
+          </div>
+
+          <div className="w-full space-y-2">
+            <label className="btn-cta text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer w-full">
+              {uploadingField === "pharmacie_pro_url" ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
+              <span>Remplacer l'image</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploadingField !== null}
+                onChange={(e) => handleUpload(e, "pharmacie_pro_url")}
+              />
+            </label>
+            {settings.pharmacie_pro_url && (
+              <button
+                onClick={() => handleResetToDefault("pharmacie_pro_url")}
                 className="text-xs text-muted-foreground hover:text-rose-600 transition-colors block mx-auto pt-1"
               >
                 Rétablir l'image initiale

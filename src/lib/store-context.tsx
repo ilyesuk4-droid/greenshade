@@ -11,6 +11,11 @@ export type Settings = {
   logo_url: string | null;
   hero_image_url: string | null;
   secondary_image_url: string | null;
+  hero_bg_url: string | null;
+  cactus_produit_url: string | null;
+  hydrogel_separator_url: string | null;
+  utilisation_patch_url: string | null;
+  pharmacie_pro_url: string | null;
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -23,6 +28,11 @@ export const DEFAULT_SETTINGS: Settings = {
   logo_url: null,
   hero_image_url: null,
   secondary_image_url: null,
+  hero_bg_url: null,
+  cactus_produit_url: null,
+  hydrogel_separator_url: null,
+  utilisation_patch_url: null,
+  pharmacie_pro_url: null,
 };
 
 type Ctx = {
