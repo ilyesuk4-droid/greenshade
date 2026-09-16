@@ -24,6 +24,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useStore } from "@/lib/store-context";
 import { WILAYAS } from "@/lib/wilayas";
+import { submitInquiry } from "@/lib/inquiries-service";
 
 // Static local assets fallback
 import heroBg from "@/assets/hero-bg.png";
@@ -925,20 +926,15 @@ function InquiryForm() {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("inquiries").insert([
-        {
-          full_name: cleanName,
-          organization_name: cleanOrg || null,
-          phone: cleanPhone,
-          email: cleanEmail || null,
-          wilaya,
-          indicative_quantity: indicativeQuantity ? parseInt(indicativeQuantity, 10) : null,
-          message: cleanMsg || null,
-          status: "nouveau",
-        },
-      ]);
-
-      if (error) throw error;
+      await submitInquiry({
+        full_name: cleanName,
+        organization_name: cleanOrg || null,
+        phone: cleanPhone,
+        email: cleanEmail || null,
+        wilaya,
+        indicative_quantity: indicativeQuantity ? parseInt(indicativeQuantity, 10) : null,
+        message: cleanMsg || null,
+      });
 
       sessionStorage.setItem("patchnature_last_inquiry", now.toString());
       setSubmitted(true);
