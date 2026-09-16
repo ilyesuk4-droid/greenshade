@@ -1,0 +1,225 @@
+/* PatchNature Design System */
+/* Google Fonts (Fraunces + Work Sans) loaded via <link> in __root.tsx */
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+@source "../src";
+
+@theme inline {
+  --font-sans: "Work Sans", system-ui, sans-serif;
+  --font-serif: "Fraunces", Georgia, serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* PatchNature Botanical Palette */
+  --color-nopal: var(--nopal);
+  --color-cladode: var(--cladode);
+  --color-aloe: var(--aloe);
+  --color-hydrogel: var(--hydrogel);
+  --color-linen: var(--linen);
+  --color-encre: var(--encre);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.75rem;
+
+  /* PatchNature brand colors */
+  --nopal: #1F4D33;         /* Deep botanical green */
+  --cladode: #4C8C5F;       /* Medium leaf green */
+  --aloe: #8FBB9C;          /* Soft sage / light green */
+  --hydrogel: #EAF3EC;      /* Pale hydrogel mint */
+  --linen: #FAF8F3;         /* Warm linen off-white */
+  --encre: #1C2620;         /* Deep ink forest black */
+
+  --background: var(--linen);
+  --foreground: var(--encre);
+  --card: #FFFFFF;
+  --card-foreground: var(--encre);
+  --popover: #FFFFFF;
+  --popover-foreground: var(--encre);
+  --primary: var(--nopal);
+  --primary-foreground: #FFFFFF;
+  --secondary: var(--hydrogel);
+  --secondary-foreground: var(--nopal);
+  --muted: #F0EDE4;
+  --muted-foreground: #5C6E63;
+  --accent: var(--cladode);
+  --accent-foreground: #FFFFFF;
+  --destructive: #BE3A34;
+  --destructive-foreground: #FFFFFF;
+  --border: #E0DDD4;
+  --input: #E0DDD4;
+  --ring: var(--cladode);
+
+  --sidebar: var(--nopal);
+  --sidebar-foreground: #FAF8F3;
+  --sidebar-primary: var(--cladode);
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #275E40;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #2A6645;
+  --sidebar-ring: var(--aloe);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    font-family: "Work Sans", system-ui, sans-serif;
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: "Work Sans", system-ui, sans-serif;
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+    position: relative;
+    -webkit-font-smoothing: antialiased;
+  }
+  #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+}
+
+@layer utilities {
+  .font-fraunces {
+    font-family: "Fraunces", Georgia, serif;
+    font-optical-sizing: auto;
+  }
+  .font-work {
+    font-family: "Work Sans", system-ui, sans-serif;
+  }
+
+  /* Color utilities */
+  .text-nopal { color: var(--nopal); }
+  .bg-nopal { background-color: var(--nopal); }
+  .border-nopal { border-color: var(--nopal); }
+
+  .text-cladode { color: var(--cladode); }
+  .bg-cladode { background-color: var(--cladode); }
+  .border-cladode { border-color: var(--cladode); }
+
+  .text-aloe { color: var(--aloe); }
+  .bg-aloe { background-color: var(--aloe); }
+  .border-aloe { border-color: var(--aloe); }
+
+  .text-hydrogel { color: var(--hydrogel); }
+  .bg-hydrogel { background-color: var(--hydrogel); }
+  .border-hydrogel { border-color: var(--hydrogel); }
+
+  .text-linen { color: var(--linen); }
+  .bg-linen { background-color: var(--linen); }
+  .border-linen { border-color: var(--linen); }
+
+  .text-encre { color: var(--encre); }
+  .bg-encre { background-color: var(--encre); }
+  .border-encre { border-color: var(--encre); }
+
+  /* Buttons */
+  .btn-cta {
+    background: linear-gradient(135deg, var(--cladode), var(--nopal));
+    color: #FFFFFF;
+    font-weight: 600;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow:
+      0 4px 16px -4px rgba(31, 77, 51, 0.35),
+      0 2px 6px -2px rgba(76, 140, 95, 0.25);
+  }
+  .btn-cta:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 10px 24px -6px rgba(31, 77, 51, 0.45),
+      0 4px 10px -2px rgba(76, 140, 95, 0.35);
+  }
+  .btn-cta:active {
+    transform: translateY(0);
+  }
+
+  .btn-outline-nature {
+    border: 1.5px solid var(--cladode);
+    color: var(--nopal);
+    background-color: transparent;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+  .btn-outline-nature:hover {
+    background-color: var(--hydrogel);
+    color: var(--nopal);
+    border-color: var(--nopal);
+  }
+
+  /* Shadows */
+  .shadow-nature {
+    box-shadow:
+      0 4px 20px -4px rgba(31, 77, 51, 0.08),
+      0 2px 8px -2px rgba(31, 77, 51, 0.04);
+  }
+  .shadow-nature-lg {
+    box-shadow:
+      0 12px 36px -8px rgba(31, 77, 51, 0.14),
+      0 4px 12px -2px rgba(31, 77, 51, 0.06);
+  }
+
+  /* Entrance motion (single orchestrated moment) */
+  .fade-in-up {
+    animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Accessibility: respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
