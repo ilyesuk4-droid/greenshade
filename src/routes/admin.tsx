@@ -1000,24 +1000,26 @@ function SettingsTab({
 
       <form onSubmit={handleSave} className="bg-white rounded-3xl p-8 border border-border shadow-sm space-y-6">
         {/* Toggle Formulaire de demande B2B */}
-        <div className="p-4 rounded-2xl bg-linen/60 border border-border flex items-center justify-between gap-4">
+        <div 
+          onClick={() => setShowInquiryForm(!showInquiryForm)}
+          className="p-4 rounded-2xl bg-linen/60 border border-border flex items-center justify-between gap-4 cursor-pointer hover:bg-linen/80 transition-colors"
+        >
           <div>
-            <h4 className="text-sm font-bold text-nopal">
+            <h4 className="text-sm font-bold text-nopal select-none">
               Afficher le formulaire de demande sur le site
             </h4>
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5 select-none">
               Si désactivé, la section affichera directement les coordonnées de contact.
             </p>
           </div>
           <button
             type="button"
-            onClick={() => setShowInquiryForm(!showInquiryForm)}
-            className={`w-12 h-7 rounded-full transition-colors relative cursor-pointer p-1 shrink-0 ${
+            className={`w-12 h-7 rounded-full transition-colors relative shrink-0 ${
               showInquiryForm ? "bg-cladode" : "bg-muted"
             }`}
           >
             <div
-              className={`w-5 h-5 rounded-full bg-white transition-transform ${
+              className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform shadow-sm ${
                 showInquiryForm ? "translate-x-5" : "translate-x-0"
               }`}
             />
