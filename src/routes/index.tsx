@@ -339,7 +339,7 @@ function LandingPage() {
                   <div className="absolute -bottom-6 -right-3 sm:-bottom-8 sm:-right-6 w-44 sm:w-56 rounded-2xl bg-white p-3 shadow-nature-lg border border-border">
                     <img
                       src={secondaryProductSrc}
-                      alt="Sachet individuel hermétique du patch hydrogel PatchNature"
+                      alt="Sachet protecteur individuel PatchNature avec patch hydrogel visible"
                       loading="lazy"
                       className="w-full h-auto object-contain rounded-lg"
                     />
