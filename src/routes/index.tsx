@@ -33,7 +33,7 @@ import utilisationPatch from "@/assets/utilisation-patch.jpg";
 import pharmaciePro from "@/assets/pharmacie-pro.jpg";
 import hydrogelSeparator from "@/assets/hydrogel-separator.jpg";
 import defaultLogo from "@/assets/patchnature-logo.jpeg";
-import defaultPackaging from "@/assets/patchnature-packaging.png";
+import defaultPackaging from "@/assets/image2.png";
 import defaultBox from "@/assets/patchnature-box.jpg";
 
 export const Route = createFileRoute("/")({
