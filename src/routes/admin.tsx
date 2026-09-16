@@ -26,6 +26,15 @@ import {
   AlertCircle,
   Menu,
   X,
+  Database,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
+  Copy,
+  Check,
+  Terminal,
+  ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore, type Settings } from "@/lib/store-context";
@@ -166,9 +175,10 @@ function PasswordGate({ onOk }: { onOk: () => void }) {
 /* ---------- Main Admin Page Component ---------- */
 function AdminPage() {
   const [authed, setAuthed] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "inquiries" | "images" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "inquiries" | "images" | "settings" | "database">("overview");
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loadingInquiries, setLoadingInquiries] = useState(true);
+  const [inquiryError, setInquiryError] = useState<{ message: string; code?: string; details?: string; hint?: string } | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { settings, refresh: refreshStore } = useStore();
@@ -189,12 +199,22 @@ function AdminPage() {
 
       if (!error && data) {
         setInquiries(data as Inquiry[]);
+        setInquiryError(null);
       } else if (error) {
         console.error("Erreur de chargement des demandes:", error);
-        toast.error("Impossible de charger les données (Erreur de permission Supabase ?)");
+        setInquiryError({
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint,
+        });
+        toast.error(`Erreur Supabase: ${error.message} (${error.code || "Code inconnu"})`);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erreur de chargement des demandes:", err);
+      setInquiryError({
+        message: err?.message || "Erreur inattendue",
+      });
       toast.error("Erreur inattendue lors du chargement des demandes");
     } finally {
       setLoadingInquiries(false);
@@ -349,6 +369,28 @@ function AdminPage() {
             <SettingsIcon className="w-4 h-4" />
             <span>Paramètres</span>
           </button>
+
+          <button
+            onClick={() => {
+              setActiveTab("database");
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg transition-colors text-left cursor-pointer ${
+              activeTab === "database"
+                ? "bg-cladode text-white font-semibold"
+                : "text-linen/80 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Database className="w-4 h-4" />
+              <span>Base de Données</span>
+            </div>
+            {inquiryError ? (
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-400 ring-4 ring-rose-500/30 animate-pulse" title="Erreur détectée" />
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-emerald-400" title="Connecté" />
+            )}
+          </button>
         </nav>
 
         <div className="p-4 border-t border-white/10 space-y-2">
@@ -378,7 +420,9 @@ function AdminPage() {
           <OverviewTab
             inquiries={inquiries}
             loading={loadingInquiries}
+            inquiryError={inquiryError}
             onSelectInquiriesTab={() => setActiveTab("inquiries")}
+            onSelectTab={(tab) => setActiveTab(tab as any)}
           />
         )}
 
@@ -397,6 +441,13 @@ function AdminPage() {
         {activeTab === "settings" && (
           <SettingsTab settings={settings} onRefreshSettings={refreshStore} />
         )}
+
+        {activeTab === "database" && (
+          <DatabaseTab
+            inquiryError={inquiryError}
+            onRefreshInquiries={loadInquiries}
+          />
+        )}
       </main>
     </div>
   );
@@ -408,11 +459,15 @@ function AdminPage() {
 function OverviewTab({
   inquiries,
   loading,
+  inquiryError,
   onSelectInquiriesTab,
+  onSelectTab,
 }: {
   inquiries: Inquiry[];
   loading: boolean;
+  inquiryError?: { message: string; code?: string; details?: string; hint?: string } | null;
   onSelectInquiriesTab: () => void;
+  onSelectTab: (tab: string) => void;
 }) {
   const total = inquiries.length;
   const newCount = inquiries.filter((i) => i.status === "nouveau").length;
@@ -421,12 +476,62 @@ function OverviewTab({
 
   return (
     <div className="space-y-8 max-w-6xl">
-      <div>
-        <h2 className="font-fraunces text-3xl font-bold text-nopal">Vue d'ensemble</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Suivi des demandes professionnelles et indicateurs clés de PatchNature.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="font-fraunces text-3xl font-bold text-nopal">Vue d'ensemble</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Suivi des demandes professionnelles et indicateurs clés de PatchNature.
+          </p>
+        </div>
+
+        <button
+          onClick={() => onSelectTab("database")}
+          className={`text-xs px-3.5 py-1.5 rounded-full border font-semibold flex items-center gap-2 cursor-pointer transition-all self-start sm:self-auto shadow-sm ${
+            inquiryError
+              ? "bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100"
+              : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+          }`}
+        >
+          <span className={`w-2 h-2 rounded-full ${inquiryError ? "bg-rose-500 animate-pulse" : "bg-emerald-500"}`} />
+          <span>{inquiryError ? "Erreur Supabase — Diagnostiquer" : "Base de données connectée"}</span>
+        </button>
       </div>
+
+      {/* Database Diagnostic Alert Banner */}
+      {inquiryError && (
+        <div className="bg-amber-50 border border-amber-300 rounded-3xl p-5 sm:p-6 text-amber-950 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-200/70 flex items-center justify-center shrink-0 text-amber-800">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-bold text-sm text-amber-950">
+                  Attention : Problème d'accès à la base de données Supabase
+                </h4>
+                {inquiryError.code && (
+                  <span className="text-[10px] font-mono font-bold bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded">
+                    Code: {inquiryError.code}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-amber-900 mt-1 font-medium">
+                {inquiryError.message}
+              </p>
+              <p className="text-[11px] text-amber-800/80 mt-0.5">
+                La table existe mais Supabase bloque la lecture, ou les politiques de sécurité (RLS) doivent être appliquées.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => onSelectTab("database")}
+            className="btn-cta text-xs px-4 py-2.5 rounded-xl whitespace-nowrap self-stretch md:self-auto text-center flex items-center justify-center gap-2 cursor-pointer shadow"
+          >
+            <Database className="w-3.5 h-3.5" />
+            <span>Tester & Réparer la base →</span>
+          </button>
+        </div>
+      )}
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -1493,3 +1598,519 @@ function SettingsTab({
     </div>
   );
 }
+
+/* ================================================================= */
+/* 5. Database Health & Diagnostic Tab Component                     */
+/* ================================================================= */
+function DatabaseTab({
+  inquiryError,
+  onRefreshInquiries,
+}: {
+  inquiryError?: { message: string; code?: string; details?: string; hint?: string } | null;
+  onRefreshInquiries: () => Promise<void>;
+}) {
+  const [testing, setTesting] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [testResults, setTestResults] = useState<{
+    testedAt: string | null;
+    supabaseUrl: string;
+    projectId: string;
+    tests: {
+      apiConnection: { ok: boolean; message: string; latency?: number };
+      settingsTable: { ok: boolean; message: string; code?: string; count?: number; latency?: number };
+      inquiriesTable: { ok: boolean; message: string; code?: string; count?: number; latency?: number };
+      storageBucket: { ok: boolean; message: string; code?: string };
+    };
+    overallOk: boolean;
+  } | null>(null);
+
+  // Derive Supabase connection info
+  const supabaseUrl =
+    (supabase as any).supabaseUrl ||
+    (typeof import.meta !== "undefined" && (import.meta.env?.VITE_SUPABASE_URL || import.meta.env?.SUPABASE_URL)) ||
+    "https://deztxaqiyaigczeywkxr.supabase.co";
+
+  const projectId = supabaseUrl.replace(/^https?:\/\//, "").split(".")[0];
+
+  const fullSqlScript = `-- ==========================================================
+-- PatchNature - Script Complet d'Initialisation & Réparation
+-- À exécuter dans Supabase SQL Editor (projet connecté)
+-- ==========================================================
+
+-- 1. Table: settings (Configuration générale)
+CREATE TABLE IF NOT EXISTS public.settings (
+  id integer PRIMARY KEY DEFAULT 1,
+  phone text NOT NULL DEFAULT '0775691557',
+  email text NOT NULL DEFAULT 'contact.patchnature@gmail.com',
+  facebook_url text NOT NULL DEFAULT 'https://facebook.com/PatchNature',
+  instagram_url text NOT NULL DEFAULT 'https://instagram.com/patch_nature',
+  show_inquiry_form boolean NOT NULL DEFAULT true,
+  logo_url text,
+  hero_image_url text,
+  secondary_image_url text,
+  hero_bg_url text,
+  cactus_produit_url text,
+  hydrogel_separator_url text,
+  utilisation_patch_url text,
+  pharmacie_pro_url text,
+  CONSTRAINT settings_singleton CHECK (id = 1)
+);
+
+-- Colonnes additionnelles dynamiques
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS hero_bg_url text;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS cactus_produit_url text;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS hydrogel_separator_url text;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS utilisation_patch_url text;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS pharmacie_pro_url text;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS logo_url text;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS hero_image_url text;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS secondary_image_url text;
+ALTER TABLE public.settings ADD COLUMN IF NOT EXISTS show_inquiry_form boolean NOT NULL DEFAULT true;
+
+-- Ligne par défaut id=1
+INSERT INTO public.settings (id, phone, email, facebook_url, instagram_url, show_inquiry_form)
+VALUES (1, '0775691557', 'contact.patchnature@gmail.com', 'https://facebook.com/PatchNature', 'https://instagram.com/patch_nature', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. Table: inquiries (Demandes de renseignements & échantillons)
+CREATE TABLE IF NOT EXISTS public.inquiries (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  full_name text NOT NULL,
+  organization_name text,
+  phone text NOT NULL,
+  email text,
+  wilaya text NOT NULL,
+  indicative_quantity integer,
+  message text,
+  status text NOT NULL DEFAULT 'nouveau'
+);
+
+-- 3. Activer Row Level Security (RLS)
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.inquiries ENABLE ROW LEVEL SECURITY;
+
+-- 4. Nettoyage préventif des anciennes politiques
+DROP POLICY IF EXISTS "settings_select_all" ON public.settings;
+DROP POLICY IF EXISTS "settings_update_all" ON public.settings;
+DROP POLICY IF EXISTS "settings_insert_all" ON public.settings;
+DROP POLICY IF EXISTS "settings_select_public" ON public.settings;
+DROP POLICY IF EXISTS "settings_update_auth" ON public.settings;
+DROP POLICY IF EXISTS "settings_insert_auth" ON public.settings;
+
+DROP POLICY IF EXISTS "inquiries_insert_all" ON public.inquiries;
+DROP POLICY IF EXISTS "inquiries_select_all" ON public.inquiries;
+DROP POLICY IF EXISTS "inquiries_update_all" ON public.inquiries;
+DROP POLICY IF EXISTS "inquiries_delete_all" ON public.inquiries;
+DROP POLICY IF EXISTS "inquiries_insert_public" ON public.inquiries;
+DROP POLICY IF EXISTS "inquiries_select_auth" ON public.inquiries;
+DROP POLICY IF EXISTS "inquiries_update_auth" ON public.inquiries;
+DROP POLICY IF EXISTS "inquiries_delete_auth" ON public.inquiries;
+
+-- 5. Politiques d'accès ouvertes pour l'admin passcode
+CREATE POLICY "settings_select_all" ON public.settings FOR SELECT USING (true);
+CREATE POLICY "settings_update_all" ON public.settings FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "settings_insert_all" ON public.settings FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "inquiries_insert_all" ON public.inquiries FOR INSERT WITH CHECK (true);
+CREATE POLICY "inquiries_select_all" ON public.inquiries FOR SELECT USING (true);
+CREATE POLICY "inquiries_update_all" ON public.inquiries FOR UPDATE USING (true) WITH CHECK (true);
+CREATE POLICY "inquiries_delete_all" ON public.inquiries FOR DELETE USING (true);
+
+-- 6. Bucket Storage pour les photos et logos
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('patchnature-assets', 'patchnature-assets', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DROP POLICY IF EXISTS "assets_select_all" ON storage.objects;
+DROP POLICY IF EXISTS "assets_insert_all" ON storage.objects;
+DROP POLICY IF EXISTS "assets_update_all" ON storage.objects;
+DROP POLICY IF EXISTS "assets_delete_all" ON storage.objects;
+
+CREATE POLICY "assets_select_all" ON storage.objects FOR SELECT USING (bucket_id = 'patchnature-assets');
+CREATE POLICY "assets_insert_all" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'patchnature-assets');
+CREATE POLICY "assets_update_all" ON storage.objects FOR UPDATE USING (bucket_id = 'patchnature-assets');
+CREATE POLICY "assets_delete_all" ON storage.objects FOR DELETE USING (bucket_id = 'patchnature-assets');`;
+
+  const runDiagnostics = async () => {
+    setTesting(true);
+    const start = performance.now();
+
+    const results = {
+      testedAt: new Date().toLocaleTimeString("fr-FR"),
+      supabaseUrl,
+      projectId,
+      tests: {
+        apiConnection: { ok: false, message: "En attente...", latency: 0 },
+        settingsTable: { ok: false, message: "En attente..." },
+        inquiriesTable: { ok: false, message: "En attente..." },
+        storageBucket: { ok: false, message: "En attente..." },
+      },
+      overallOk: false,
+    };
+
+    try {
+      // Test 1: Ping / API
+      const pingStart = performance.now();
+      const { error: pingError } = await supabase.from("settings").select("id").limit(1);
+      const pingLatency = Math.round(performance.now() - pingStart);
+      results.tests.apiConnection = {
+        ok: !pingError || (pingError.code !== "PGRST000" && pingError.message !== "Failed to fetch"),
+        message: pingError?.message === "Failed to fetch" ? "Serveur Supabase inaccessible (Hors ligne ou URL erronée)" : `Connecté (${pingLatency} ms)`,
+        latency: pingLatency,
+      };
+
+      // Test 2: Settings Table
+      const sStart = performance.now();
+      const { data: sData, error: sError } = await supabase.from("settings").select("*").limit(1);
+      const sLatency = Math.round(performance.now() - sStart);
+      if (!sError && sData) {
+        results.tests.settingsTable = {
+          ok: true,
+          message: `Table accessible (${sData.length} ligne configurée)`,
+          count: sData.length,
+          latency: sLatency,
+        };
+      } else {
+        results.tests.settingsTable = {
+          ok: false,
+          code: sError?.code,
+          message: sError?.message || "Erreur inconnue",
+          latency: sLatency,
+        };
+      }
+
+      // Test 3: Inquiries Table
+      const inqStart = performance.now();
+      const { data: inqData, error: inqError, count: inqCount } = await supabase
+        .from("inquiries")
+        .select("id, status", { count: "exact" })
+        .limit(5);
+      const inqLatency = Math.round(performance.now() - inqStart);
+
+      if (!inqError) {
+        results.tests.inquiriesTable = {
+          ok: true,
+          message: `Table accessible (${inqCount ?? inqData?.length ?? 0} demandes au total)`,
+          count: inqCount ?? inqData?.length ?? 0,
+          latency: inqLatency,
+        };
+      } else {
+        results.tests.inquiriesTable = {
+          ok: false,
+          code: inqError?.code,
+          message: inqError?.message || "Erreur inconnue",
+          latency: inqLatency,
+        };
+      }
+
+      // Test 4: Storage Bucket
+      const { data: bData, error: bError } = await supabase.storage
+        .from("patchnature-assets")
+        .list("", { limit: 1 });
+
+      if (!bError) {
+        results.tests.storageBucket = {
+          ok: true,
+          message: "Bucket 'patchnature-assets' public et opérationnel",
+        };
+      } else {
+        results.tests.storageBucket = {
+          ok: false,
+          code: (bError as any)?.statusCode || "ERR",
+          message: bError.message || "Bucket introuvable ou inaccessible",
+        };
+      }
+
+      results.overallOk =
+        results.tests.apiConnection.ok &&
+        results.tests.settingsTable.ok &&
+        results.tests.inquiriesTable.ok;
+
+      setTestResults(results);
+
+      if (results.overallOk) {
+        toast.success("Tous les tests Supabase sont passés avec succès ! ✓");
+        await onRefreshInquiries();
+      } else {
+        toast.error("Des erreurs ont été détectées sur la base de données.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Erreur critique lors de l'exécution des tests.");
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  useEffect(() => {
+    runDiagnostics();
+  }, []);
+
+  const copySql = () => {
+    navigator.clipboard.writeText(fullSqlScript);
+    setCopied(true);
+    toast.success("Script SQL copié dans le presse-papier !");
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  return (
+    <div className="space-y-8 max-w-5xl">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h2 className="font-fraunces text-3xl font-bold text-nopal">
+              Santé & Diagnostic Supabase
+            </h2>
+            <span className="text-xs bg-hydrogel text-nopal font-semibold px-2.5 py-0.5 rounded-full border border-aloe/30">
+              قاعدة البيانات
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Vérification en temps réel de la connectivité, des tables PostgreSQL et des politiques de sécurité (RLS).
+          </p>
+        </div>
+
+        <button
+          onClick={runDiagnostics}
+          disabled={testing}
+          className="btn-cta text-xs px-5 py-2.5 rounded-xl flex items-center gap-2 self-start sm:self-auto cursor-pointer shadow disabled:opacity-50"
+        >
+          {testing ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+          <span>{testing ? "Test en cours..." : "Relancer le diagnostic"}</span>
+        </button>
+      </div>
+
+      {/* Critical Comparison Alert: Project ID */}
+      <div className="bg-white rounded-3xl p-6 sm:p-7 border border-border shadow-sm space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-hydrogel flex items-center justify-center text-nopal shrink-0">
+            <Database className="w-5 h-5 text-cladode" />
+          </div>
+          <div>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
+              Projet Supabase Actuellement Connecté
+            </span>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <span className="font-mono text-sm font-bold text-nopal bg-linen px-2.5 py-1 rounded-lg border border-border">
+                ID: {projectId}
+              </span>
+              <span className="text-xs text-muted-foreground font-mono truncate max-w-xs sm:max-w-md">
+                ({supabaseUrl})
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-amber-900 text-xs leading-relaxed flex items-start gap-3">
+          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <strong className="font-bold block mb-0.5">
+              ⚠️ نقطة مهمة جداً للتأكد منها (Vérification essentielle) :
+            </strong>
+            <span>
+              تأكد أن الـ <strong>Project ID</strong> المعروض أعلاه (<code>{projectId}</code>) هو <strong>نفسه</strong> الموجود في رابط لوحة تحكم Supabase في متصفحك (مثال: <code>supabase.com/dashboard/project/{projectId}</code>). إذا كان الرابط في متصفحك يحتوي على ID آخر، فهذا يعني أنك تنفذ كود الـ SQL في مشروع مختلف عن المشروع المتصل بالموقع!
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Real-Time Test Matrix */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-border shadow-sm space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="font-fraunces text-xl font-bold text-nopal">
+            Résultats des Tests en Direct
+          </h3>
+          {testResults?.testedAt && (
+            <span className="text-xs text-muted-foreground">
+              Dernier test à {testResults.testedAt}
+            </span>
+          )}
+        </div>
+
+        {testing && !testResults ? (
+          <div className="py-12 text-center text-muted-foreground flex flex-col items-center justify-center gap-3">
+            <Loader2 className="w-6 h-6 animate-spin text-cladode" />
+            <span className="text-sm">Interrogation de l'API Supabase et vérification des tables...</span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Test 1: API Ping */}
+            <div className={`p-4 rounded-2xl border flex items-start justify-between gap-3 ${
+              testResults?.tests.apiConnection.ok
+                ? "bg-emerald-50/60 border-emerald-200 text-emerald-950"
+                : "bg-rose-50 border-rose-200 text-rose-950"
+            }`}>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm">1. Connexion API Supabase</span>
+                  {testResults?.tests.apiConnection.latency ? (
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/70">
+                      {testResults.tests.apiConnection.latency} ms
+                    </span>
+                  ) : null}
+                </div>
+                <p className="text-xs opacity-90">{testResults?.tests.apiConnection.message}</p>
+              </div>
+              {testResults?.tests.apiConnection.ok ? (
+                <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              ) : (
+                <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              )}
+            </div>
+
+            {/* Test 2: Settings Table */}
+            <div className={`p-4 rounded-2xl border flex items-start justify-between gap-3 ${
+              testResults?.tests.settingsTable.ok
+                ? "bg-emerald-50/60 border-emerald-200 text-emerald-950"
+                : "bg-rose-50 border-rose-200 text-rose-950"
+            }`}>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm">2. Table `settings` (Paramètres)</span>
+                  {testResults?.tests.settingsTable.code && (
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">
+                      Code: {testResults.tests.settingsTable.code}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs opacity-90">{testResults?.tests.settingsTable.message}</p>
+              </div>
+              {testResults?.tests.settingsTable.ok ? (
+                <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              ) : (
+                <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              )}
+            </div>
+
+            {/* Test 3: Inquiries Table */}
+            <div className={`p-4 rounded-2xl border flex items-start justify-between gap-3 ${
+              testResults?.tests.inquiriesTable.ok
+                ? "bg-emerald-50/60 border-emerald-200 text-emerald-950"
+                : "bg-rose-50 border-rose-200 text-rose-950"
+            }`}>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm">3. Table `inquiries` (Demandes B2B)</span>
+                  {testResults?.tests.inquiriesTable.code && (
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-200 text-rose-900">
+                      Code: {testResults.tests.inquiriesTable.code}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs opacity-90">{testResults?.tests.inquiriesTable.message}</p>
+                {!testResults?.tests.inquiriesTable.ok && testResults?.tests.inquiriesTable.code === "42501" && (
+                  <p className="text-[11px] font-semibold text-rose-800">
+                    💡 Cause : Permission RLS refusée. Exécutez le script SQL ci-dessous pour autoriser la lecture.
+                  </p>
+                )}
+                {!testResults?.tests.inquiriesTable.ok && testResults?.tests.inquiriesTable.code === "42P01" && (
+                  <p className="text-[11px] font-semibold text-rose-800">
+                    💡 Cause : La table n'a pas encore été créée sur ce projet. Exécutez le script SQL ci-dessous.
+                  </p>
+                )}
+              </div>
+              {testResults?.tests.inquiriesTable.ok ? (
+                <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              ) : (
+                <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+              )}
+            </div>
+
+            {/* Test 4: Storage Bucket */}
+            <div className={`p-4 rounded-2xl border flex items-start justify-between gap-3 ${
+              testResults?.tests.storageBucket.ok
+                ? "bg-emerald-50/60 border-emerald-200 text-emerald-950"
+                : "bg-amber-50 border-amber-200 text-amber-950"
+            }`}>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm">4. Bucket Storage (`patchnature-assets`)</span>
+                  {testResults?.tests.storageBucket.code && (
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900">
+                      {testResults.tests.storageBucket.code}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs opacity-90">{testResults?.tests.storageBucket.message}</p>
+              </div>
+              {testResults?.tests.storageBucket.ok ? (
+                <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              ) : (
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* SQL Repair Script & Instructions */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-border shadow-sm space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="font-fraunces text-xl font-bold text-nopal flex items-center gap-2">
+              <Terminal className="w-5 h-5 text-cladode" />
+              <span>Script SQL Complet d'Initialisation & Réparation</span>
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Ce script crée les tables manquantes, configure le bucket Storage et applique les règles d'accès RLS sans conflit.
+            </p>
+          </div>
+
+          <button
+            onClick={copySql}
+            className="btn-cta text-xs px-4 py-2.5 rounded-xl flex items-center gap-2 self-start sm:self-auto cursor-pointer shadow-sm"
+          >
+            {copied ? <Check className="w-4 h-4 text-white" /> : <Copy className="w-4 h-4" />}
+            <span>{copied ? "Copié !" : "Copier le script SQL"}</span>
+          </button>
+        </div>
+
+        {/* Step by step instructions */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="p-3.5 rounded-xl bg-linen border border-border">
+            <span className="font-bold text-nopal block mb-1">1. Ouvrir Supabase</span>
+            <p className="text-muted-foreground">
+              Allez sur <strong>SQL Editor</strong> dans le projet <code>{projectId}</code>.
+            </p>
+          </div>
+          <div className="p-3.5 rounded-xl bg-linen border border-border">
+            <span className="font-bold text-nopal block mb-1">2. Coller & Exécuter</span>
+            <p className="text-muted-foreground">
+              Collez le code ci-dessous dans une nouvelle requête et cliquez sur <strong>Run</strong>.
+            </p>
+          </div>
+          <div className="p-3.5 rounded-xl bg-linen border border-border">
+            <span className="font-bold text-nopal block mb-1">3. Tester à nouveau</span>
+            <p className="text-muted-foreground">
+              Revenez ici et cliquez sur <strong>"Relancer le diagnostic"</strong>.
+            </p>
+          </div>
+        </div>
+
+        {/* Code Block Container */}
+        <div className="relative rounded-2xl overflow-hidden border border-border bg-[#1E293B] text-slate-100">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900/80 border-b border-slate-800 text-xs">
+            <span className="font-mono text-slate-400">patchnature_schema.sql</span>
+            <button
+              onClick={copySql}
+              className="text-slate-300 hover:text-white flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copied ? "Copié !" : "Copier"}</span>
+            </button>
+          </div>
+          <pre className="p-4 text-[11px] font-mono overflow-x-auto max-h-72 leading-relaxed text-slate-200">
+            {fullSqlScript}
+          </pre>
+        </div>
+      </div>
+    </div>
+  );
+}
+
