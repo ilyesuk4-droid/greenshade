@@ -860,7 +860,7 @@ function LandingPage() {
             <div className="flex items-center gap-1">
               <span>Développé avec soin par</span>
               <a
-                href="https://ilyesbadredine-portfolio.vercel.app/"
+                href="https://ilyas-portfolio.carrd.co/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-aloe font-semibold hover:underline inline-flex items-center gap-1"
@@ -891,8 +891,35 @@ function InquiryForm() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (!fullName.trim() || !phone.trim() || !wilaya.trim()) {
+    const cleanName = fullName.trim().slice(0, 100);
+    const cleanPhone = phone.trim().replace(/[\s.-]/g, "").slice(0, 20);
+    const cleanEmail = email.trim().slice(0, 100);
+    const cleanOrg = organization.trim().slice(0, 150);
+    const cleanMsg = message.trim().slice(0, 1000);
+
+    if (!cleanName || !cleanPhone || !wilaya.trim()) {
       toast.error("Veuillez remplir votre nom, téléphone et wilaya.");
+      return;
+    }
+
+    // Phone validation (Algerian mobile/fixed format or general international)
+    const phoneRegex = /^(?:(?:\+|00)213|0)?[567][0-9]{8}$/;
+    if (!phoneRegex.test(cleanPhone) && cleanPhone.length < 9) {
+      toast.error("Veuillez saisir un numéro de téléphone valide (ex: 0775691557 ou 05/06/07...).");
+      return;
+    }
+
+    // Email validation if entered
+    if (cleanEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      toast.error("Veuillez saisir une adresse email valide.");
+      return;
+    }
+
+    // Client-side rate limiting (cooldown of 30 seconds)
+    const lastSubmit = sessionStorage.getItem("patchnature_last_inquiry");
+    const now = Date.now();
+    if (lastSubmit && now - parseInt(lastSubmit, 10) < 30000) {
+      toast.error("Veuillez patienter 30 secondes avant d'envoyer une nouvelle demande.");
       return;
     }
 
@@ -900,19 +927,20 @@ function InquiryForm() {
     try {
       const { error } = await supabase.from("inquiries").insert([
         {
-          full_name: fullName.trim(),
-          organization_name: organization.trim() || null,
-          phone: phone.trim(),
-          email: email.trim() || null,
+          full_name: cleanName,
+          organization_name: cleanOrg || null,
+          phone: cleanPhone,
+          email: cleanEmail || null,
           wilaya,
           indicative_quantity: indicativeQuantity ? parseInt(indicativeQuantity, 10) : null,
-          message: message.trim() || null,
+          message: cleanMsg || null,
           status: "nouveau",
         },
       ]);
 
       if (error) throw error;
 
+      sessionStorage.setItem("patchnature_last_inquiry", now.toString());
       setSubmitted(true);
       toast.success("Votre demande a été transmise avec succès !");
     } catch (err) {

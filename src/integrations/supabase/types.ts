@@ -62,6 +62,11 @@ export type Database = {
           logo_url: string | null
           hero_image_url: string | null
           secondary_image_url: string | null
+          hero_bg_url: string | null
+          cactus_produit_url: string | null
+          hydrogel_separator_url: string | null
+          utilisation_patch_url: string | null
+          pharmacie_pro_url: string | null
         }
         Insert: {
           id?: number
@@ -73,6 +78,11 @@ export type Database = {
           logo_url?: string | null
           hero_image_url?: string | null
           secondary_image_url?: string | null
+          hero_bg_url?: string | null
+          cactus_produit_url?: string | null
+          hydrogel_separator_url?: string | null
+          utilisation_patch_url?: string | null
+          pharmacie_pro_url?: string | null
         }
         Update: {
           id?: number
@@ -84,6 +94,11 @@ export type Database = {
           logo_url?: string | null
           hero_image_url?: string | null
           secondary_image_url?: string | null
+          hero_bg_url?: string | null
+          cactus_produit_url?: string | null
+          hydrogel_separator_url?: string | null
+          utilisation_patch_url?: string | null
+          pharmacie_pro_url?: string | null
         }
         Relationships: []
       }

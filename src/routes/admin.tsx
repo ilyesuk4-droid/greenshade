@@ -22,7 +22,10 @@ import {
   RefreshCw,
   ExternalLink,
   Eye,
+  EyeOff,
   AlertCircle,
+  Menu,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useStore, type Settings } from "@/lib/store-context";
@@ -41,9 +44,6 @@ import defaultBox from "@/assets/patchnature-box.jpg";
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
-
-const ADMIN_PASSWORD = "patchnature2026";
-const AUTH_KEY = "patchnature_admin_auth";
 
 type Inquiry = {
   id: string;
@@ -76,75 +76,190 @@ const fmtDate = (d: string) => {
   }
 };
 
-/* ---------- Password Gate ---------- */
-function PasswordGate({ onOk }: { onOk: () => void }) {
-  const [pw, setPw] = useState("");
+/* ---------- Admin Authentication Gate ---------- */
+function AdminAuthGate({ onOk }: { onOk: () => void }) {
+  const [mode, setMode] = useState<"login" | "signup">("login");
+  const [email, setEmail] = useState("contact.patchnature@gmail.com");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  const submit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (pw === ADMIN_PASSWORD) {
-      sessionStorage.setItem(AUTH_KEY, "1");
-      onOk();
-    } else {
-      setErr("Mot de passe incorrect");
+    setErr("");
+    if (!email.trim() || !password) {
+      setErr("Veuillez renseigner l'adresse email et le mot de passe.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (mode === "login") {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
+        if (error) throw error;
+        if (data?.session) {
+          toast.success("Connexion réussie");
+          onOk();
+        }
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+        });
+        if (error) throw error;
+        if (data?.session) {
+          toast.success("Compte administrateur créé et connecté !");
+          onOk();
+        } else {
+          toast.success("Compte créé avec succès ! Connectez-vous dès à présent.");
+          setMode("login");
+        }
+      }
+    } catch (error: any) {
+      console.error("Auth error:", error);
+      const msg =
+        error?.message === "Invalid login credentials"
+          ? "Identifiants invalides (email ou mot de passe incorrect)."
+          : error?.message || "Erreur de connexion.";
+      setErr(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-nopal p-4">
-      <form
-        onSubmit={submit}
-        className="bg-white rounded-3xl p-8 sm:p-10 shadow-2xl w-full max-w-sm border border-aloe/30"
-      >
+      <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-2xl w-full max-w-md border border-aloe/30">
         <div className="flex flex-col items-center text-center mb-6">
           <div className="w-14 h-14 rounded-2xl bg-hydrogel text-nopal flex items-center justify-center mb-4">
             <Lock className="w-7 h-7 text-cladode" />
           </div>
           <h1 className="font-fraunces text-2xl font-bold text-nopal">PatchNature Admin</h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Espace d'administration réservé
+            Espace d'administration sécurisé
           </p>
         </div>
 
+        {/* Mode switch: Login vs Setup */}
+        <div className="flex bg-linen rounded-xl p-1 mb-5">
+          <button
+            type="button"
+            onClick={() => {
+              setMode("login");
+              setErr("");
+            }}
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              mode === "login"
+                ? "bg-white text-nopal shadow-sm"
+                : "text-muted-foreground hover:text-nopal"
+            }`}
+          >
+            Se connecter
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMode("signup");
+              setErr("");
+            }}
+            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              mode === "signup"
+                ? "bg-white text-nopal shadow-sm"
+                : "text-muted-foreground hover:text-nopal"
+            }`}
+          >
+            Nouveau compte admin
+          </button>
+        </div>
+
         {err && (
-          <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+          <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{err}</span>
           </div>
         )}
 
-        <div className="mb-5">
-          <label htmlFor="adminPw" className="block text-xs font-semibold text-nopal mb-1.5">
-            Mot de passe d'accès
-          </label>
-          <input
-            id="adminPw"
-            type="password"
-            autoFocus
-            value={pw}
-            onChange={(e) => {
-              setPw(e.target.value);
-              setErr("");
-            }}
-            placeholder="••••••••"
-            className="w-full px-4 py-2.5 rounded-lg border border-border bg-linen/50 text-sm focus:outline-none focus:ring-2 focus:ring-cladode focus:border-transparent"
-          />
-        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="adminEmail" className="block text-xs font-semibold text-nopal mb-1.5">
+              Adresse Email
+            </label>
+            <input
+              id="adminEmail"
+              type="email"
+              required
+              autoFocus
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setErr("");
+              }}
+              placeholder="contact.patchnature@gmail.com"
+              className="w-full px-4 py-2.5 rounded-lg border border-border bg-linen/50 text-sm focus:outline-none focus:ring-2 focus:ring-cladode focus:border-transparent"
+            />
+          </div>
 
-        <button
-          type="submit"
-          className="w-full btn-cta py-3 rounded-lg text-sm font-semibold cursor-pointer"
-        >
-          Connexion
-        </button>
+          <div>
+            <label htmlFor="adminPw" className="block text-xs font-semibold text-nopal mb-1.5">
+              Mot de passe
+            </label>
+            <div className="relative">
+              <input
+                id="adminPw"
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setErr("");
+                }}
+                placeholder="••••••••"
+                className="w-full px-4 py-2.5 pr-10 rounded-lg border border-border bg-linen/50 text-sm focus:outline-none focus:ring-2 focus:ring-cladode focus:border-transparent"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-nopal cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {mode === "signup" && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Le mot de passe doit comporter au moins 6 caractères.
+              </p>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full btn-cta py-3 rounded-lg text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 mt-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Traitement...</span>
+              </>
+            ) : mode === "login" ? (
+              <span>Connexion</span>
+            ) : (
+              <span>Créer le compte admin</span>
+            )}
+          </button>
+        </form>
 
         <div className="mt-6 text-center">
           <Link to="/" className="text-xs text-muted-foreground hover:text-nopal">
             ← Retourner au site vitrine
           </Link>
         </div>
-      </form>
+      </div>
     </div>
   );
 }
@@ -152,16 +267,29 @@ function PasswordGate({ onOk }: { onOk: () => void }) {
 /* ---------- Main Admin Page Component ---------- */
 function AdminPage() {
   const [authed, setAuthed] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "inquiries" | "images" | "settings">("overview");
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loadingInquiries, setLoadingInquiries] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { settings, refresh: refreshStore } = useStore();
 
   useEffect(() => {
-    if (typeof window !== "undefined" && sessionStorage.getItem(AUTH_KEY) === "1") {
-      setAuthed(true);
-    }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setAuthed(!!session?.user);
+      setCheckingAuth(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthed(!!session?.user);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadInquiries = async () => {
@@ -174,6 +302,8 @@ function AdminPage() {
 
       if (!error && data) {
         setInquiries(data as Inquiry[]);
+      } else if (error) {
+        console.error("Erreur de chargement des demandes:", error);
       }
     } catch (err) {
       console.error("Erreur de chargement des demandes:", err);
@@ -188,39 +318,100 @@ function AdminPage() {
     }
   }, [authed]);
 
-  if (!authed) {
-    return <PasswordGate onOk={() => setAuthed(true)} />;
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-nopal text-linen">
+        <Loader2 className="w-8 h-8 animate-spin text-cladode" />
+      </div>
+    );
   }
 
-  const handleLogout = () => {
-    sessionStorage.removeItem(AUTH_KEY);
+  if (!authed) {
+    return <AdminAuthGate onOk={() => setAuthed(true)} />;
+  }
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error(e);
+    }
     setAuthed(false);
+    toast.success("Déconnexion réussie");
   };
 
   return (
-    <div className="min-h-screen flex bg-linen/50 text-encre">
-      {/* Sidebar */}
-      <aside className="w-64 bg-nopal text-linen flex flex-col shrink-0 border-r border-aloe/20">
-        <div className="p-6 border-b border-white/10 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-white p-1 flex items-center justify-center shrink-0">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-linen/50 text-encre">
+      {/* Mobile Top Header */}
+      <header className="lg:hidden bg-nopal text-linen px-4 py-3 flex items-center justify-between border-b border-aloe/20 sticky top-0 z-30">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-white p-1 flex items-center justify-center shrink-0">
             <img
               src={settings.logo_url || defaultLogo}
               alt="Logo"
               className="w-full h-full object-contain"
             />
           </div>
-          <div className="flex flex-col">
-            <span className="font-fraunces font-bold text-lg text-white leading-tight">
-              PatchNature
-            </span>
-            <span className="text-[11px] text-aloe font-medium">Administration</span>
+          <span className="font-fraunces font-bold text-white text-base">
+            PatchNature Admin
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+          aria-label="Toggle navigation"
+        >
+          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </header>
+
+      {/* Backdrop for mobile drawer */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-nopal text-linen flex flex-col shrink-0 border-r border-aloe/20 transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
+          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="p-6 border-b border-white/10 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-white p-1 flex items-center justify-center shrink-0">
+              <img
+                src={settings.logo_url || defaultLogo}
+                alt="Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-fraunces font-bold text-lg text-white leading-tight">
+                PatchNature
+              </span>
+              <span className="text-[11px] text-aloe font-medium">Administration</span>
+            </div>
           </div>
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(false)}
+            className="lg:hidden p-1 text-linen/70 hover:text-white cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1.5 text-sm font-medium">
+        <nav className="flex-1 p-4 space-y-1.5 text-sm font-medium overflow-y-auto">
           <button
-            onClick={() => setActiveTab("overview")}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-colors text-left ${
+            onClick={() => {
+              setActiveTab("overview");
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-colors text-left cursor-pointer ${
               activeTab === "overview"
                 ? "bg-cladode text-white font-semibold"
                 : "text-linen/80 hover:bg-white/10 hover:text-white"
@@ -231,8 +422,11 @@ function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab("inquiries")}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg transition-colors text-left ${
+            onClick={() => {
+              setActiveTab("inquiries");
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg transition-colors text-left cursor-pointer ${
               activeTab === "inquiries"
                 ? "bg-cladode text-white font-semibold"
                 : "text-linen/80 hover:bg-white/10 hover:text-white"
@@ -250,8 +444,11 @@ function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab("images")}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-colors text-left ${
+            onClick={() => {
+              setActiveTab("images");
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-colors text-left cursor-pointer ${
               activeTab === "images"
                 ? "bg-cladode text-white font-semibold"
                 : "text-linen/80 hover:bg-white/10 hover:text-white"
@@ -262,8 +459,11 @@ function AdminPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab("settings")}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-colors text-left ${
+            onClick={() => {
+              setActiveTab("settings");
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-colors text-left cursor-pointer ${
               activeTab === "settings"
                 ? "bg-cladode text-white font-semibold"
                 : "text-linen/80 hover:bg-white/10 hover:text-white"
@@ -287,7 +487,7 @@ function AdminPage() {
 
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-rose-300 hover:text-rose-100 rounded-lg hover:bg-rose-500/10 transition-colors"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-rose-300 hover:text-rose-100 rounded-lg hover:bg-rose-500/10 transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             <span>Déconnexion</span>
@@ -296,7 +496,7 @@ function AdminPage() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto p-6 sm:p-10">
+      <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10">
         {activeTab === "overview" && (
           <OverviewTab
             inquiries={inquiries}
