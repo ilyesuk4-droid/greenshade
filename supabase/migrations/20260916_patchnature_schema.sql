@@ -87,28 +87,23 @@ DROP POLICY IF EXISTS "inquiries_select_auth" ON public.inquiries;
 DROP POLICY IF EXISTS "inquiries_update_auth" ON public.inquiries;
 DROP POLICY IF EXISTS "inquiries_delete_auth" ON public.inquiries;
 
--- === Policies for `settings` ===
--- Public can read store settings (phone, links, logos, hero images)
-CREATE POLICY "settings_select_public" ON public.settings
+-- === Policies for `settings` (Passcode-gated admin) ===
+CREATE POLICY "settings_select_all" ON public.settings
   FOR SELECT
   USING (true);
 
--- Only authenticated administrators can modify settings
-CREATE POLICY "settings_update_auth" ON public.settings
+CREATE POLICY "settings_update_all" ON public.settings
   FOR UPDATE
-  TO authenticated
   USING (true)
   WITH CHECK (true);
 
--- Only authenticated administrators can insert settings
-CREATE POLICY "settings_insert_auth" ON public.settings
+CREATE POLICY "settings_insert_all" ON public.settings
   FOR INSERT
-  TO authenticated
   WITH CHECK (true);
 
--- === Policies for `inquiries` ===
+-- === Policies for `inquiries` (Passcode-gated admin) ===
 -- Public can submit B2B inquiries (with basic validation)
-CREATE POLICY "inquiries_insert_public" ON public.inquiries
+CREATE POLICY "inquiries_insert_all" ON public.inquiries
   FOR INSERT
   WITH CHECK (
     length(trim(full_name)) > 0 AND
@@ -116,23 +111,17 @@ CREATE POLICY "inquiries_insert_public" ON public.inquiries
     length(trim(wilaya)) > 0
   );
 
--- ONLY authenticated administrators can view client inquiries
-CREATE POLICY "inquiries_select_auth" ON public.inquiries
+CREATE POLICY "inquiries_select_all" ON public.inquiries
   FOR SELECT
-  TO authenticated
   USING (true);
 
--- ONLY authenticated administrators can update inquiry status
-CREATE POLICY "inquiries_update_auth" ON public.inquiries
+CREATE POLICY "inquiries_update_all" ON public.inquiries
   FOR UPDATE
-  TO authenticated
   USING (true)
   WITH CHECK (true);
 
--- ONLY authenticated administrators can delete inquiries
-CREATE POLICY "inquiries_delete_auth" ON public.inquiries
+CREATE POLICY "inquiries_delete_all" ON public.inquiries
   FOR DELETE
-  TO authenticated
   USING (true);
 
 -- 4. Storage Setup for assets bucket
@@ -141,28 +130,29 @@ VALUES ('patchnature-assets', 'patchnature-assets', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
 -- Storage policies
+DROP POLICY IF EXISTS "assets_select_all" ON storage.objects;
+DROP POLICY IF EXISTS "assets_insert_all" ON storage.objects;
+DROP POLICY IF EXISTS "assets_update_all" ON storage.objects;
+DROP POLICY IF EXISTS "assets_delete_all" ON storage.objects;
 DROP POLICY IF EXISTS "assets_public_select" ON storage.objects;
 DROP POLICY IF EXISTS "assets_auth_insert" ON storage.objects;
 DROP POLICY IF EXISTS "assets_auth_update" ON storage.objects;
 DROP POLICY IF EXISTS "assets_auth_delete" ON storage.objects;
 
-CREATE POLICY "assets_public_select" ON storage.objects
+CREATE POLICY "assets_select_all" ON storage.objects
   FOR SELECT
   USING (bucket_id = 'patchnature-assets');
 
-CREATE POLICY "assets_auth_insert" ON storage.objects
+CREATE POLICY "assets_insert_all" ON storage.objects
   FOR INSERT
-  TO authenticated
   WITH CHECK (bucket_id = 'patchnature-assets');
 
-CREATE POLICY "assets_auth_update" ON storage.objects
+CREATE POLICY "assets_update_all" ON storage.objects
   FOR UPDATE
-  TO authenticated
   USING (bucket_id = 'patchnature-assets');
 
-CREATE POLICY "assets_auth_delete" ON storage.objects
+CREATE POLICY "assets_delete_all" ON storage.objects
   FOR DELETE
-  TO authenticated
   USING (bucket_id = 'patchnature-assets');
 
 -- 5. Realtime Publication

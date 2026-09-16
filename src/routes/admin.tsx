@@ -45,6 +45,9 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
+const ADMIN_PASSWORD = "patchnature2026";
+const AUTH_KEY = "patchnature_admin_auth";
+
 type Inquiry = {
   id: string;
   created_at: string;
@@ -76,190 +79,86 @@ const fmtDate = (d: string) => {
   }
 };
 
-/* ---------- Admin Authentication Gate ---------- */
-function AdminAuthGate({ onOk }: { onOk: () => void }) {
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [email, setEmail] = useState("contact.patchnature@gmail.com");
-  const [password, setPassword] = useState("");
+/* ---------- Password Gate ---------- */
+function PasswordGate({ onOk }: { onOk: () => void }) {
+  const [pw, setPw] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
-  const handleSubmit = async (e: FormEvent) => {
+  const submit = (e: FormEvent) => {
     e.preventDefault();
-    setErr("");
-    if (!email.trim() || !password) {
-      setErr("Veuillez renseigner l'adresse email et le mot de passe.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      if (mode === "login") {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-        if (error) throw error;
-        if (data?.session) {
-          toast.success("Connexion réussie");
-          onOk();
-        }
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-        });
-        if (error) throw error;
-        if (data?.session) {
-          toast.success("Compte administrateur créé et connecté !");
-          onOk();
-        } else {
-          toast.success("Compte créé avec succès ! Connectez-vous dès à présent.");
-          setMode("login");
-        }
-      }
-    } catch (error: any) {
-      console.error("Auth error:", error);
-      const msg =
-        error?.message === "Invalid login credentials"
-          ? "Identifiants invalides (email ou mot de passe incorrect)."
-          : error?.message || "Erreur de connexion.";
-      setErr(msg);
-      toast.error(msg);
-    } finally {
-      setLoading(false);
+    if (pw === ADMIN_PASSWORD) {
+      sessionStorage.setItem(AUTH_KEY, "1");
+      toast.success("Connexion réussie");
+      onOk();
+    } else {
+      setErr("Code d'accès incorrect");
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-nopal p-4">
-      <div className="bg-white rounded-3xl p-8 sm:p-10 shadow-2xl w-full max-w-md border border-aloe/30">
+      <form
+        onSubmit={submit}
+        className="bg-white rounded-3xl p-8 sm:p-10 shadow-2xl w-full max-w-sm border border-aloe/30 animate-in fade-in zoom-in-95 duration-200"
+      >
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-hydrogel text-nopal flex items-center justify-center mb-4">
+          <div className="w-14 h-14 rounded-2xl bg-hydrogel text-nopal flex items-center justify-center mb-4 shadow-sm">
             <Lock className="w-7 h-7 text-cladode" />
           </div>
           <h1 className="font-fraunces text-2xl font-bold text-nopal">PatchNature Admin</h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Espace d'administration sécurisé
+            Espace d'administration réservé
           </p>
         </div>
 
-        {/* Mode switch: Login vs Setup */}
-        <div className="flex bg-linen rounded-xl p-1 mb-5">
-          <button
-            type="button"
-            onClick={() => {
-              setMode("login");
-              setErr("");
-            }}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-              mode === "login"
-                ? "bg-white text-nopal shadow-sm"
-                : "text-muted-foreground hover:text-nopal"
-            }`}
-          >
-            Se connecter
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setMode("signup");
-              setErr("");
-            }}
-            className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-              mode === "signup"
-                ? "bg-white text-nopal shadow-sm"
-                : "text-muted-foreground hover:text-nopal"
-            }`}
-          >
-            Nouveau compte admin
-          </button>
-        </div>
-
         {err && (
-          <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{err}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="adminEmail" className="block text-xs font-semibold text-nopal mb-1.5">
-              Adresse Email
-            </label>
+        <div className="mb-5">
+          <label htmlFor="adminPw" className="block text-xs font-semibold text-nopal mb-1.5">
+            Code d'accès
+          </label>
+          <div className="relative">
             <input
-              id="adminEmail"
-              type="email"
-              required
+              id="adminPw"
+              type={showPassword ? "text" : "password"}
               autoFocus
-              value={email}
+              value={pw}
               onChange={(e) => {
-                setEmail(e.target.value);
+                setPw(e.target.value);
                 setErr("");
               }}
-              placeholder="contact.patchnature@gmail.com"
-              className="w-full px-4 py-2.5 rounded-lg border border-border bg-linen/50 text-sm focus:outline-none focus:ring-2 focus:ring-cladode focus:border-transparent"
+              placeholder="••••••••"
+              className="w-full px-4 py-2.5 pr-10 rounded-lg border border-border bg-linen/50 text-sm focus:outline-none focus:ring-2 focus:ring-cladode focus:border-transparent"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-nopal cursor-pointer"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
           </div>
+        </div>
 
-          <div>
-            <label htmlFor="adminPw" className="block text-xs font-semibold text-nopal mb-1.5">
-              Mot de passe
-            </label>
-            <div className="relative">
-              <input
-                id="adminPw"
-                type={showPassword ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setErr("");
-                }}
-                placeholder="••••••••"
-                className="w-full px-4 py-2.5 pr-10 rounded-lg border border-border bg-linen/50 text-sm focus:outline-none focus:ring-2 focus:ring-cladode focus:border-transparent"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-nopal cursor-pointer"
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            {mode === "signup" && (
-              <p className="text-[11px] text-muted-foreground mt-1">
-                Le mot de passe doit comporter au moins 6 caractères.
-              </p>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full btn-cta py-3 rounded-lg text-sm font-semibold cursor-pointer flex items-center justify-center gap-2 mt-2"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Traitement...</span>
-              </>
-            ) : mode === "login" ? (
-              <span>Connexion</span>
-            ) : (
-              <span>Créer le compte admin</span>
-            )}
-          </button>
-        </form>
+        <button
+          type="submit"
+          className="w-full btn-cta py-3 rounded-lg text-sm font-semibold cursor-pointer"
+        >
+          Connexion
+        </button>
 
         <div className="mt-6 text-center">
           <Link to="/" className="text-xs text-muted-foreground hover:text-nopal">
             ← Retourner au site vitrine
           </Link>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
@@ -267,7 +166,6 @@ function AdminAuthGate({ onOk }: { onOk: () => void }) {
 /* ---------- Main Admin Page Component ---------- */
 function AdminPage() {
   const [authed, setAuthed] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "inquiries" | "images" | "settings">("overview");
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loadingInquiries, setLoadingInquiries] = useState(true);
@@ -276,20 +174,9 @@ function AdminPage() {
   const { settings, refresh: refreshStore } = useStore();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setAuthed(!!session?.user);
-      setCheckingAuth(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthed(!!session?.user);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    if (typeof window !== "undefined" && sessionStorage.getItem(AUTH_KEY) === "1") {
+      setAuthed(true);
+    }
   }, []);
 
   const loadInquiries = async () => {
@@ -318,24 +205,12 @@ function AdminPage() {
     }
   }, [authed]);
 
-  if (checkingAuth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-nopal text-linen">
-        <Loader2 className="w-8 h-8 animate-spin text-cladode" />
-      </div>
-    );
-  }
-
   if (!authed) {
-    return <AdminAuthGate onOk={() => setAuthed(true)} />;
+    return <PasswordGate onOk={() => setAuthed(true)} />;
   }
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.error(e);
-    }
+  const handleLogout = () => {
+    sessionStorage.removeItem(AUTH_KEY);
     setAuthed(false);
     toast.success("Déconnexion réussie");
   };
