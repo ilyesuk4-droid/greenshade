@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { brokeredPreviewStorage } from './previewAuthStorage';
 
-const FALLBACK_SUPABASE_URL = "https://deztxaqiyaigczeywkxr.supabase.co";
-const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlenR4YXFpeWFpZ2N6ZXl3a3hyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MjM5NzcsImV4cCI6MjA5NDQ5OTk3N30.EGiIqu_WEEadMOP_lVnGgl3WGBNFr9Cki3m3ARkUXE4";
+const FALLBACK_SUPABASE_URL = "https://ytddjpwotekhycdpfbhx.supabase.co";
+const FALLBACK_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl0ZGRqcHdvdGVraHljZHBmYmh4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk1MTgwOTAsImV4cCI6MjEwNTA5NDA5MH0.WwljxBQDHPGLdlp6oXm6Y38tbyO3w49NCYoywel71x0";
 
 function getEnv(key: string): string | undefined {
   if (typeof process !== 'undefined' && process?.env && process.env[key]) {
