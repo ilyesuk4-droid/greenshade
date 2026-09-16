@@ -33,7 +33,7 @@ import utilisationPatch from "@/assets/utilisation-patch.jpg";
 import pharmaciePro from "@/assets/pharmacie-pro.jpg";
 import hydrogelSeparator from "@/assets/hydrogel-separator.jpg";
 import defaultLogo from "@/assets/patchnature-logo.jpeg";
-import defaultPackaging from "@/assets/patchnature-packaging.jpg";
+import defaultPackaging from "@/assets/patchnature-packaging.png";
 import defaultBox from "@/assets/patchnature-box.jpg";
 
 export const Route = createFileRoute("/")({
@@ -44,16 +44,16 @@ function LandingPage() {
   const { settings } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Dynamic image sources with local asset fallbacks
-  const logoSrc = settings.logo_url || defaultLogo;
-  const heroProductSrc = settings.hero_image_url || defaultBox;
-  const secondaryProductSrc = settings.secondary_image_url || defaultPackaging;
+  // Static local asset sources (bundled with the frontend)
+  const logoSrc = defaultLogo;
+  const heroProductSrc = defaultBox;
+  const secondaryProductSrc = defaultPackaging;
   
-  const heroBgSrc = settings.hero_bg_url || heroBg;
-  const cactusProduitSrc = settings.cactus_produit_url || cactusProduit;
-  const hydrogelSeparatorSrc = settings.hydrogel_separator_url || hydrogelSeparator;
-  const utilisationPatchSrc = settings.utilisation_patch_url || utilisationPatch;
-  const pharmacieProSrc = settings.pharmacie_pro_url || pharmaciePro;
+  const heroBgSrc = heroBg;
+  const cactusProduitSrc = cactusProduit;
+  const hydrogelSeparatorSrc = hydrogelSeparator;
+  const utilisationPatchSrc = utilisationPatch;
+  const pharmacieProSrc = pharmaciePro;
 
   const scrollTo = (id: string) => {
     setMobileMenuOpen(false);

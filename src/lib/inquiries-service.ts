@@ -33,56 +33,34 @@ function saveLocalBackup(inquiries: Inquiry[]) {
 }
 
 /**
- * Charge toutes les demandes B2B de manière résiliente :
- * 1. Essaie d'abord la table 'inquiries' de Supabase
- * 2. Si la table n'existe pas (PGRST205), bascule automatiquement sur 'settings.content.inquiries'
- * 3. Fusionne avec les sauvegardes locales au besoin
+ * Charge toutes les demandes B2B depuis la table `inquiries` de Supabase.
+ * Utilise localStorage comme cache de secours uniquement en cas d'échec réseau.
  */
 export async function fetchInquiries(): Promise<Inquiry[]> {
-  try {
-    // 1. Essai sur la table dédiée
-    const { data, error } = await supabase
-      .from("inquiries")
-      .select("*")
-      .order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("inquiries")
+    .select("*")
+    .order("created_at", { ascending: false });
 
-    if (!error && Array.isArray(data)) {
-      saveLocalBackup(data as Inquiry[]);
-      return data as Inquiry[];
+  if (error) {
+    console.error("[fetchInquiries] Erreur Supabase:", error);
+    // En cas d'erreur réseau, retourner le cache local
+    const backup = getLocalBackup();
+    if (backup.length > 0) {
+      console.warn("[fetchInquiries] Utilisation du cache local de secours");
+      return backup;
     }
-  } catch (err) {
-    console.warn("Table SQL inquiries non disponible, passage au stockage cloud secours:", err);
+    // Propager l'erreur pour que l'UI puisse l'afficher
+    throw error;
   }
 
-  // 2. Bascule transparente sur settings.content
-  try {
-    const { data: sData, error: sError } = await supabase
-      .from("settings")
-      .select("content")
-      .eq("id", 1)
-      .maybeSingle();
-
-    if (!sError && sData?.content) {
-      const content = sData.content as Record<string, any>;
-      if (Array.isArray(content.inquiries)) {
-        const sorted = (content.inquiries as Inquiry[]).sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-        saveLocalBackup(sorted);
-        return sorted;
-      }
-    }
-  } catch (err) {
-    console.warn("Erreur lecture settings.content:", err);
-  }
-
-  // 3. Dernier recours : local storage
-  return getLocalBackup();
+  const inquiries = (data ?? []) as Inquiry[];
+  saveLocalBackup(inquiries);
+  return inquiries;
 }
 
 /**
- * Enregistre une nouvelle demande B2B avec garantie de succès :
- * Écrit sur la table SQL si existante, sinon enregistre dans 'settings.content.inquiries'
+ * Enregistre une nouvelle demande B2B dans la table `inquiries`.
  */
 export async function submitInquiry(inquiryData: {
   full_name: string;
@@ -93,11 +71,7 @@ export async function submitInquiry(inquiryData: {
   indicative_quantity?: number | null;
   message?: string | null;
 }): Promise<Inquiry> {
-  const newInquiry: Inquiry = {
-    id: typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `inq_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    created_at: new Date().toISOString(),
+  const payload = {
     full_name: inquiryData.full_name,
     organization_name: inquiryData.organization_name || null,
     phone: inquiryData.phone,
@@ -108,99 +82,36 @@ export async function submitInquiry(inquiryData: {
     status: "nouveau",
   };
 
-  let savedInTable = false;
+  const { data, error } = await supabase
+    .from("inquiries")
+    .insert([payload])
+    .select()
+    .single();
 
-  // 1. Tenter d'insérer dans la table inquiries
-  try {
-    const { error } = await supabase.from("inquiries").insert([newInquiry]);
-    if (!error) {
-      savedInTable = true;
-    }
-  } catch {
-    savedInTable = false;
+  if (error) {
+    console.error("[submitInquiry] Erreur Supabase:", error);
+    throw error;
   }
 
-  // 2. Si la table n'existe pas ou échoue, sauvegarder dans settings.content
-  if (!savedInTable) {
-    try {
-      const { data: sData } = await supabase
-        .from("settings")
-        .select("content")
-        .eq("id", 1)
-        .maybeSingle();
-
-      const existingContent =
-        sData?.content && typeof sData.content === "object"
-          ? (sData.content as Record<string, any>)
-          : {};
-
-      const currentList: Inquiry[] = Array.isArray(existingContent.inquiries)
-        ? existingContent.inquiries
-        : [];
-
-      const updatedList = [newInquiry, ...currentList];
-
-      await supabase
-        .from("settings")
-        .update({
-          content: {
-            ...existingContent,
-            inquiries: updatedList,
-          },
-        })
-        .eq("id", 1);
-    } catch (fallbackErr) {
-      console.warn("Échec sauvegarde settings.content, sauvegarde locale appliquée:", fallbackErr);
-    }
-  }
-
-  // Sauvegarde miroir locale
+  // Mettre à jour le cache local
   const local = getLocalBackup();
-  saveLocalBackup([newInquiry, ...local]);
+  saveLocalBackup([data as Inquiry, ...local]);
 
-  return newInquiry;
+  return data as Inquiry;
 }
 
 /**
  * Mise à jour du statut d'une demande
  */
 export async function updateInquiryStatus(id: string, newStatus: string): Promise<void> {
-  let updatedInTable = false;
+  const { error } = await supabase
+    .from("inquiries")
+    .update({ status: newStatus })
+    .eq("id", id);
 
-  try {
-    const { error } = await supabase
-      .from("inquiries")
-      .update({ status: newStatus })
-      .eq("id", id);
-    if (!error) updatedInTable = true;
-  } catch {
-    updatedInTable = false;
-  }
-
-  // Mettre à jour aussi dans settings.content
-  try {
-    const { data: sData } = await supabase
-      .from("settings")
-      .select("content")
-      .eq("id", 1)
-      .maybeSingle();
-
-    if (sData?.content) {
-      const content = sData.content as Record<string, any>;
-      if (Array.isArray(content.inquiries)) {
-        const updated = content.inquiries.map((inq: Inquiry) =>
-          inq.id === id ? { ...inq, status: newStatus } : inq
-        );
-        await supabase
-          .from("settings")
-          .update({
-            content: { ...content, inquiries: updated },
-          })
-          .eq("id", 1);
-      }
-    }
-  } catch (err) {
-    console.warn("Erreur mise à jour settings.content:", err);
+  if (error) {
+    console.error("[updateInquiryStatus] Erreur Supabase:", error);
+    throw error;
   }
 
   // Mettre à jour la copie locale
@@ -212,33 +123,14 @@ export async function updateInquiryStatus(id: string, newStatus: string): Promis
  * Suppression d'une demande
  */
 export async function deleteInquiry(id: string): Promise<void> {
-  try {
-    await supabase.from("inquiries").delete().eq("id", id);
-  } catch {
-    // Ignorer si la table n'existe pas
-  }
+  const { error } = await supabase
+    .from("inquiries")
+    .delete()
+    .eq("id", id);
 
-  try {
-    const { data: sData } = await supabase
-      .from("settings")
-      .select("content")
-      .eq("id", 1)
-      .maybeSingle();
-
-    if (sData?.content) {
-      const content = sData.content as Record<string, any>;
-      if (Array.isArray(content.inquiries)) {
-        const filtered = content.inquiries.filter((inq: Inquiry) => inq.id !== id);
-        await supabase
-          .from("settings")
-          .update({
-            content: { ...content, inquiries: filtered },
-          })
-          .eq("id", 1);
-      }
-    }
-  } catch (err) {
-    console.warn("Erreur suppression settings.content:", err);
+  if (error) {
+    console.error("[deleteInquiry] Erreur Supabase:", error);
+    throw error;
   }
 
   const local = getLocalBackup().filter((i) => i.id !== id);
@@ -250,14 +142,13 @@ export async function deleteInquiry(id: string): Promise<void> {
  */
 export async function checkInquiriesStorageHealth(): Promise<{
   ok: boolean;
-  mode: "table" | "cloud_hybrid";
+  mode: "table" | "offline";
   message: string;
   count: number;
   latency: number;
 }> {
   const start = performance.now();
 
-  // Test 1: Table SQL dédiée
   try {
     const { data, error, count } = await supabase
       .from("inquiries")
@@ -270,46 +161,26 @@ export async function checkInquiriesStorageHealth(): Promise<{
       return {
         ok: true,
         mode: "table",
-        message: `Table SQL dédiée opérationnelle (${count ?? data?.length ?? 0} demandes)`,
+        message: `Table SQL 'inquiries' opérationnelle (${count ?? data?.length ?? 0} demandes)`,
         count: count ?? data?.length ?? 0,
         latency,
       };
     }
-  } catch {
-    // Table non disponible
+
+    return {
+      ok: false,
+      mode: "offline",
+      message: `Erreur d'accès à la table inquiries: ${error.message}`,
+      count: 0,
+      latency,
+    };
+  } catch (err: any) {
+    return {
+      ok: false,
+      mode: "offline",
+      message: `Erreur de connexion: ${err?.message || "Inconnue"}`,
+      count: getLocalBackup().length,
+      latency: Math.round(performance.now() - start),
+    };
   }
-
-  // Test 2: Mode Cloud Hybride (settings.content)
-  try {
-    const sStart = performance.now();
-    const { data: sData, error: sError } = await supabase
-      .from("settings")
-      .select("content")
-      .eq("id", 1)
-      .maybeSingle();
-
-    const latency = Math.round(performance.now() - sStart);
-
-    if (!sError && sData) {
-      const content = (sData.content || {}) as Record<string, any>;
-      const inqs = Array.isArray(content.inquiries) ? content.inquiries : [];
-      return {
-        ok: true,
-        mode: "cloud_hybrid",
-        message: `Stockage Cloud Supabase opérationnel (${inqs.length} demandes sauvegardées sans perte)`,
-        count: inqs.length,
-        latency,
-      };
-    }
-  } catch {
-    // Erreur
-  }
-
-  return {
-    ok: true,
-    mode: "cloud_hybrid",
-    message: "Stockage résilient actif avec sauvegarde locale",
-    count: getLocalBackup().length,
-    latency: Math.round(performance.now() - start),
-  };
 }

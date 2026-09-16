@@ -1,11 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type FormEvent, type ChangeEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import {
   LayoutDashboard,
   Inbox,
   Settings as SettingsIcon,
-  Image as ImageIcon,
   LogOut,
   Loader2,
   Search,
@@ -18,7 +17,6 @@ import {
   Phone,
   Mail,
   MapPin,
-  Upload,
   RefreshCw,
   ExternalLink,
   Eye,
@@ -47,15 +45,8 @@ import {
   type Inquiry,
 } from "@/lib/inquiries-service";
 
-// Fallback images
-import heroBg from "@/assets/hero-bg.png";
-import cactusProduit from "@/assets/cactus-produit.png";
-import utilisationPatch from "@/assets/utilisation-patch.jpg";
-import pharmaciePro from "@/assets/pharmacie-pro.jpg";
-import hydrogelSeparator from "@/assets/hydrogel-separator.jpg";
+// Logo fallback
 import defaultLogo from "@/assets/patchnature-logo.jpeg";
-import defaultPackaging from "@/assets/patchnature-packaging.jpg";
-import defaultBox from "@/assets/patchnature-box.jpg";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -169,7 +160,7 @@ function PasswordGate({ onOk }: { onOk: () => void }) {
 /* ---------- Main Admin Page Component ---------- */
 function AdminPage() {
   const [authed, setAuthed] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "inquiries" | "images" | "settings" | "database">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "inquiries" | "settings" | "database">("overview");
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loadingInquiries, setLoadingInquiries] = useState(true);
   const [inquiryError, setInquiryError] = useState<{ message: string; code?: string; details?: string; hint?: string } | null>(null);
@@ -191,7 +182,12 @@ function AdminPage() {
       setInquiryError(null);
     } catch (err: any) {
       console.error("Erreur de chargement des demandes:", err);
-      setInquiryError(null);
+      setInquiryError({
+        message: err?.message || "Erreur inconnue lors du chargement des demandes",
+        code: err?.code,
+        details: err?.details,
+        hint: err?.hint,
+      });
     } finally {
       setLoadingInquiries(false);
     }
@@ -316,20 +312,7 @@ function AdminPage() {
             )}
           </button>
 
-          <button
-            onClick={() => {
-              setActiveTab("images");
-              setMobileMenuOpen(false);
-            }}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg transition-colors text-left cursor-pointer ${
-              activeTab === "images"
-                ? "bg-cladode text-white font-semibold"
-                : "text-linen/80 hover:bg-white/10 hover:text-white"
-            }`}
-          >
-            <ImageIcon className="w-4 h-4" />
-            <span>Images & Visuels</span>
-          </button>
+
 
           <button
             onClick={() => {
@@ -410,9 +393,7 @@ function AdminPage() {
           />
         )}
 
-        {activeTab === "images" && (
-          <ImagesTab settings={settings} onRefreshSettings={refreshStore} />
-        )}
+
 
         {activeTab === "settings" && (
           <SettingsTab settings={settings} onRefreshSettings={refreshStore} />
@@ -959,440 +940,7 @@ function InquiriesTab({
   );
 }
 
-/* ================================================================= */
-/* 3. Images Tab Component (Supabase Storage Management)             */
-/* ================================================================= */
-function ImagesTab({
-  settings,
-  onRefreshSettings,
-}: {
-  settings: Settings;
-  onRefreshSettings: () => Promise<void>;
-}) {
-  const [uploadingField, setUploadingField] = useState<string | null>(null);
 
-  const handleUpload = async (
-    e: ChangeEvent<HTMLInputElement>,
-    field: "logo_url" | "hero_image_url" | "secondary_image_url" | "hero_bg_url" | "cactus_produit_url" | "hydrogel_separator_url" | "utilisation_patch_url" | "pharmacie_pro_url"
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingField(field);
-    try {
-      const ext = file.name.split(".").pop();
-      const fileName = `${field}-${Date.now()}.${ext}`;
-      const filePath = `uploads/${fileName}`;
-
-      // Upload file to Supabase Storage bucket 'patchnature-assets'
-      const { error: uploadError } = await supabase.storage
-        .from("patchnature-assets")
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: true,
-        });
-
-      if (uploadError) {
-        throw uploadError;
-      }
-
-      // Get public URL
-      const { data: publicUrlData } = supabase.storage
-        .from("patchnature-assets")
-        .getPublicUrl(filePath);
-
-      const publicUrl = publicUrlData.publicUrl;
-
-      // Update settings
-      await saveSettingsToSupabase({ [field]: publicUrl });
-      await onRefreshSettings();
-      toast.success("Image mise à jour avec succès !");
-    } catch (err: any) {
-      console.error("Erreur lors de l'upload d'image:", err);
-      toast.error(
-        err?.message ||
-          "Erreur lors de l'upload. Assurez-vous que le bucket 'patchnature-assets' existe dans Supabase Storage."
-      );
-    } finally {
-      setUploadingField(null);
-      e.target.value = "";
-    }
-  };
-
-  const handleResetToDefault = async (field: "logo_url" | "hero_image_url" | "secondary_image_url" | "hero_bg_url" | "cactus_produit_url" | "hydrogel_separator_url" | "utilisation_patch_url" | "pharmacie_pro_url") => {
-    try {
-      await saveSettingsToSupabase({ [field]: null });
-      await onRefreshSettings();
-      toast.success("Image réinitialisée vers l'asset d'origine");
-    } catch (err) {
-      console.error(err);
-      toast.error("Impossible de réinitialiser l'image");
-    }
-  };
-
-  return (
-    <div className="space-y-8 max-w-4xl">
-      <div>
-        <h2 className="font-fraunces text-3xl font-bold text-nopal">Gestion des Visuels</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Modifiez dynamiquement le logo et les photos du packaging affichées sur le site.
-        </p>
-      </div>
-
-      <div className="bg-hydrogel/50 p-4 rounded-2xl border border-aloe/40 text-xs text-nopal flex items-start gap-3">
-        <Upload className="w-4 h-4 text-cladode shrink-0 mt-0.5" />
-        <div>
-          <span className="font-bold block mb-0.5">Bucket Supabase Storage : `patchnature-assets`</span>
-          <span>
-            Les images téléversées sont hébergées sur le cloud Supabase Storage et mises à jour en
-            temps réel sur le site sans redéploiement de code.
-          </span>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* 1. Logo */}
-        <div className="bg-white rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center text-center">
-          <span className="text-xs font-bold uppercase tracking-wider text-cladode mb-2">
-            Logo Officiel
-          </span>
-          <p className="text-xs text-muted-foreground mb-4">Header & Footer</p>
-
-          <div className="w-32 h-32 rounded-2xl bg-linen border border-border/80 p-3 flex items-center justify-center mb-6 shadow-inner">
-            <img
-              src={settings.logo_url || defaultLogo}
-              alt="Logo actuel"
-              className="max-w-full max-h-full object-contain"
-            />
-          </div>
-
-          <div className="w-full space-y-2">
-            <label className="btn-cta text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer w-full">
-              {uploadingField === "logo_url" ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Upload className="w-3.5 h-3.5" />
-              )}
-              <span>Remplacer le logo</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={uploadingField !== null}
-                onChange={(e) => handleUpload(e, "logo_url")}
-              />
-            </label>
-
-            {settings.logo_url && (
-              <button
-                onClick={() => handleResetToDefault("logo_url")}
-                className="text-xs text-muted-foreground hover:text-rose-600 transition-colors block mx-auto pt-1"
-              >
-                Rétablir le logo initial
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* 2. Hero Product Photo (Box) */}
-        <div className="bg-white rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center text-center">
-          <span className="text-xs font-bold uppercase tracking-wider text-cladode mb-2">
-            Photo Principale (Hero)
-          </span>
-          <p className="text-xs text-muted-foreground mb-4">Boîte de 10 patchs</p>
-
-          <div className="w-32 h-32 rounded-2xl bg-linen border border-border/80 p-3 flex items-center justify-center mb-6 shadow-inner">
-            <img
-              src={settings.hero_image_url || defaultBox}
-              alt="Boîte héro actuelle"
-              className="max-w-full max-h-full object-contain"
-            />
-          </div>
-
-          <div className="w-full space-y-2">
-            <label className="btn-cta text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer w-full">
-              {uploadingField === "hero_image_url" ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Upload className="w-3.5 h-3.5" />
-              )}
-              <span>Remplacer l'image</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={uploadingField !== null}
-                onChange={(e) => handleUpload(e, "hero_image_url")}
-              />
-            </label>
-
-            {settings.hero_image_url && (
-              <button
-                onClick={() => handleResetToDefault("hero_image_url")}
-                className="text-xs text-muted-foreground hover:text-rose-600 transition-colors block mx-auto pt-1"
-              >
-                Rétablir l'image initiale
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* 3. Secondary Photo (Packaging sachet) */}
-        <div className="bg-white rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center text-center">
-          <span className="text-xs font-bold uppercase tracking-wider text-cladode mb-2">
-            Photo Secondaire
-          </span>
-          <p className="text-xs text-muted-foreground mb-4">Sachet individuel</p>
-
-          <div className="w-32 h-32 rounded-2xl bg-linen border border-border/80 p-3 flex items-center justify-center mb-6 shadow-inner">
-            <img
-              src={settings.secondary_image_url || defaultPackaging}
-              alt="Sachet actuel"
-              className="max-w-full max-h-full object-contain"
-            />
-          </div>
-
-          <div className="w-full space-y-2">
-            <label className="btn-cta text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer w-full">
-              {uploadingField === "secondary_image_url" ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Upload className="w-3.5 h-3.5" />
-              )}
-              <span>Remplacer l'image</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={uploadingField !== null}
-                onChange={(e) => handleUpload(e, "secondary_image_url")}
-              />
-            </label>
-
-            {settings.secondary_image_url && (
-              <button
-                onClick={() => handleResetToDefault("secondary_image_url")}
-                className="text-xs text-muted-foreground hover:text-rose-600 transition-colors block mx-auto pt-1"
-              >
-                Rétablir l'image initiale
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* 4. Hero Background */}
-        <div className="bg-white rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center text-center">
-          <span className="text-xs font-bold uppercase tracking-wider text-cladode mb-2">
-            Arrière-plan Principal
-          </span>
-          <p className="text-xs text-muted-foreground mb-4">Hero Background</p>
-
-          <div className="w-32 h-32 rounded-2xl bg-linen border border-border/80 p-3 flex items-center justify-center mb-6 shadow-inner">
-            <img
-              src={settings.hero_bg_url || heroBg}
-              alt="Background actuel"
-              className="max-w-full max-h-full object-cover rounded-xl"
-            />
-          </div>
-
-          <div className="w-full space-y-2">
-            <label className="btn-cta text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer w-full">
-              {uploadingField === "hero_bg_url" ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Upload className="w-3.5 h-3.5" />
-              )}
-              <span>Remplacer l'image</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={uploadingField !== null}
-                onChange={(e) => handleUpload(e, "hero_bg_url")}
-              />
-            </label>
-            {settings.hero_bg_url && (
-              <button
-                onClick={() => handleResetToDefault("hero_bg_url")}
-                className="text-xs text-muted-foreground hover:text-rose-600 transition-colors block mx-auto pt-1"
-              >
-                Rétablir l'image initiale
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* 5. Cactus Produit */}
-        <div className="bg-white rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center text-center">
-          <span className="text-xs font-bold uppercase tracking-wider text-cladode mb-2">
-            Macro Cactus
-          </span>
-          <p className="text-xs text-muted-foreground mb-4">Section Notre Produit</p>
-
-          <div className="w-32 h-32 rounded-2xl bg-linen border border-border/80 p-3 flex items-center justify-center mb-6 shadow-inner">
-            <img
-              src={settings.cactus_produit_url || cactusProduit}
-              alt="Cactus actuel"
-              className="max-w-full max-h-full object-cover rounded-xl"
-            />
-          </div>
-
-          <div className="w-full space-y-2">
-            <label className="btn-cta text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer w-full">
-              {uploadingField === "cactus_produit_url" ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Upload className="w-3.5 h-3.5" />
-              )}
-              <span>Remplacer l'image</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={uploadingField !== null}
-                onChange={(e) => handleUpload(e, "cactus_produit_url")}
-              />
-            </label>
-            {settings.cactus_produit_url && (
-              <button
-                onClick={() => handleResetToDefault("cactus_produit_url")}
-                className="text-xs text-muted-foreground hover:text-rose-600 transition-colors block mx-auto pt-1"
-              >
-                Rétablir l'image initiale
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* 6. Hydrogel Separator */}
-        <div className="bg-white rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center text-center">
-          <span className="text-xs font-bold uppercase tracking-wider text-cladode mb-2">
-            Séparateur Hydrogel
-          </span>
-          <p className="text-xs text-muted-foreground mb-4">Goutte d'eau</p>
-
-          <div className="w-32 h-32 rounded-2xl bg-linen border border-border/80 p-3 flex items-center justify-center mb-6 shadow-inner">
-            <img
-              src={settings.hydrogel_separator_url || hydrogelSeparator}
-              alt="Séparateur actuel"
-              className="max-w-full max-h-full object-cover rounded-xl"
-            />
-          </div>
-
-          <div className="w-full space-y-2">
-            <label className="btn-cta text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer w-full">
-              {uploadingField === "hydrogel_separator_url" ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Upload className="w-3.5 h-3.5" />
-              )}
-              <span>Remplacer l'image</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={uploadingField !== null}
-                onChange={(e) => handleUpload(e, "hydrogel_separator_url")}
-              />
-            </label>
-            {settings.hydrogel_separator_url && (
-              <button
-                onClick={() => handleResetToDefault("hydrogel_separator_url")}
-                className="text-xs text-muted-foreground hover:text-rose-600 transition-colors block mx-auto pt-1"
-              >
-                Rétablir l'image initiale
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* 7. Utilisation Patch */}
-        <div className="bg-white rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center text-center">
-          <span className="text-xs font-bold uppercase tracking-wider text-cladode mb-2">
-            Mode d'Utilisation
-          </span>
-          <p className="text-xs text-muted-foreground mb-4">Application sur la peau</p>
-
-          <div className="w-32 h-32 rounded-2xl bg-linen border border-border/80 p-3 flex items-center justify-center mb-6 shadow-inner">
-            <img
-              src={settings.utilisation_patch_url || utilisationPatch}
-              alt="Utilisation actuelle"
-              className="max-w-full max-h-full object-cover rounded-xl"
-            />
-          </div>
-
-          <div className="w-full space-y-2">
-            <label className="btn-cta text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer w-full">
-              {uploadingField === "utilisation_patch_url" ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Upload className="w-3.5 h-3.5" />
-              )}
-              <span>Remplacer l'image</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={uploadingField !== null}
-                onChange={(e) => handleUpload(e, "utilisation_patch_url")}
-              />
-            </label>
-            {settings.utilisation_patch_url && (
-              <button
-                onClick={() => handleResetToDefault("utilisation_patch_url")}
-                className="text-xs text-muted-foreground hover:text-rose-600 transition-colors block mx-auto pt-1"
-              >
-                Rétablir l'image initiale
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* 8. Pharmacie Pro */}
-        <div className="bg-white rounded-3xl p-6 border border-border shadow-sm flex flex-col items-center text-center">
-          <span className="text-xs font-bold uppercase tracking-wider text-cladode mb-2">
-            Espace Pro
-          </span>
-          <p className="text-xs text-muted-foreground mb-4">Image pharmacienne</p>
-
-          <div className="w-32 h-32 rounded-2xl bg-linen border border-border/80 p-3 flex items-center justify-center mb-6 shadow-inner">
-            <img
-              src={settings.pharmacie_pro_url || pharmaciePro}
-              alt="Pharmacie actuelle"
-              className="max-w-full max-h-full object-cover rounded-xl"
-            />
-          </div>
-
-          <div className="w-full space-y-2">
-            <label className="btn-cta text-xs py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 cursor-pointer w-full">
-              {uploadingField === "pharmacie_pro_url" ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Upload className="w-3.5 h-3.5" />
-              )}
-              <span>Remplacer l'image</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={uploadingField !== null}
-                onChange={(e) => handleUpload(e, "pharmacie_pro_url")}
-              />
-            </label>
-            {settings.pharmacie_pro_url && (
-              <button
-                onClick={() => handleResetToDefault("pharmacie_pro_url")}
-                className="text-xs text-muted-foreground hover:text-rose-600 transition-colors block mx-auto pt-1"
-              >
-                Rétablir l'image initiale
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 /* ================================================================= */
 /* 4. Settings Tab Component                                         */
