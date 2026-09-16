@@ -37,7 +37,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useStore, type Settings } from "@/lib/store-context";
+import { useStore, saveSettingsToSupabase, type Settings } from "@/lib/store-context";
 import { WILAYAS } from "@/lib/wilayas";
 import {
   fetchInquiries,
@@ -1003,14 +1003,8 @@ function ImagesTab({
 
       const publicUrl = publicUrlData.publicUrl;
 
-      // Update settings table
-      const { error: updateError } = await supabase
-        .from("settings")
-        .update({ [field]: publicUrl })
-        .eq("id", 1);
-
-      if (updateError) throw updateError;
-
+      // Update settings
+      await saveSettingsToSupabase({ [field]: publicUrl });
       await onRefreshSettings();
       toast.success("Image mise à jour avec succès !");
     } catch (err: any) {
@@ -1027,12 +1021,7 @@ function ImagesTab({
 
   const handleResetToDefault = async (field: "logo_url" | "hero_image_url" | "secondary_image_url" | "hero_bg_url" | "cactus_produit_url" | "hydrogel_separator_url" | "utilisation_patch_url" | "pharmacie_pro_url") => {
     try {
-      const { error } = await supabase
-        .from("settings")
-        .update({ [field]: null })
-        .eq("id", 1);
-
-      if (error) throw error;
+      await saveSettingsToSupabase({ [field]: null });
       await onRefreshSettings();
       toast.success("Image réinitialisée vers l'asset d'origine");
     } catch (err) {
@@ -1434,18 +1423,14 @@ function SettingsTab({
     e.preventDefault();
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("settings")
-        .update({
-          phone: phone.trim(),
-          email: email.trim(),
-          facebook_url: facebook.trim(),
-          instagram_url: instagram.trim(),
-          show_inquiry_form: showInquiryForm,
-        })
-        .eq("id", 1);
+      await saveSettingsToSupabase({
+        phone: phone.trim(),
+        email: email.trim(),
+        facebook_url: facebook.trim(),
+        instagram_url: instagram.trim(),
+        show_inquiry_form: showInquiryForm,
+      });
 
-      if (error) throw error;
       await onRefreshSettings();
       toast.success("Paramètres enregistrés avec succès ✓");
     } catch (err) {
