@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -8,7 +9,12 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { Toaster } from "sonner";
-import { StoreProvider } from "@/lib/store-context";
+import { CartProvider, useCart } from "@/hooks/use-cart";
+import { Navbar } from "@/components/layout/Navbar";
+import { Footer } from "@/components/layout/Footer";
+import { FloatingWhatsApp } from "@/components/layout/FloatingWhatsApp";
+import { CartDrawer } from "@/components/cart/CartDrawer";
+import { siteConfig } from "@/config/site";
 
 import appCss from "../styles.css?url";
 
@@ -39,7 +45,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
         <button
           onClick={() => { router.invalidate(); reset(); }}
-          className="mt-6 btn-cta rounded-lg px-6 py-2.5 text-sm"
+          className="mt-6 btn-cta rounded-lg px-6 py-2.5 text-sm cursor-pointer"
         >
           Réessayer
         </button>
@@ -53,27 +59,28 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "PatchNature — Patch Naturel Anti-inflammatoire à l'Hydrogel de Cladodes" },
+      { title: `${siteConfig.brandName} — Cosmétiques Naturels | ${siteConfig.tagline}` },
       {
         name: "description",
-        content: "Une solution innovante pour les soins de la peau, associant un extrait de cladodes de figuier de Barbarie à la technologie hydrogel. Innovation développée en Algérie.",
+        content: `${siteConfig.brandName} — ${siteConfig.headline}. Soins naturels pour visage et corps, déodorants sans alcool ni sels d'aluminium. Efficacité garantie.`,
       },
-      { property: "og:title", content: "PatchNature — Patch Naturel Anti-inflammatoire" },
+      { property: "og:title", content: `${siteConfig.brandName} — Cosmétiques Naturels` },
       {
         property: "og:description",
-        content: "Soin innovant de la peau à base d'hydrogel de cladodes de figuier de Barbarie. Conçu et formulé en Algérie.",
+        content: `${siteConfig.brandName} — ${siteConfig.headline}. ${siteConfig.tagline}.`,
       },
       { property: "og:type", content: "website" },
-      { name: "twitter:title", content: "PatchNature — Patch Naturel Anti-inflammatoire" },
+      { name: "twitter:title", content: `${siteConfig.brandName} — Cosmétiques Naturels` },
       {
         name: "twitter:description",
-        content: "Soin innovant de la peau à base d'hydrogel de cladodes de figuier de Barbarie. Conçu et formulé en Algérie.",
+        content: `${siteConfig.brandName} — ${siteConfig.headline}. ${siteConfig.tagline}.`,
       },
-      { property: "og:image", content: "/patchnature-box.png" },
-      { name: "twitter:image", content: "/patchnature-box.png" },
+      { property: "og:image", content: siteConfig.logoPath },
+      { name: "twitter:image", content: siteConfig.logoPath },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
+      { rel: "icon", href: siteConfig.faviconPath },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
@@ -103,14 +110,31 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+function MainLayout() {
+  const [cartOpen, setCartOpen] = useState(false);
+  const { itemCount } = useCart();
+
+  return (
+    <div className="min-h-screen flex flex-col bg-linen text-encre selection:bg-aloe selection:text-nopal">
+      <Navbar onOpenCart={() => setCartOpen(true)} cartItemCount={itemCount} />
+      <main className="flex-1 flex flex-col">
+        <Outlet />
+      </main>
+      <Footer />
+      <FloatingWhatsApp />
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
+      <Toaster position="bottom-right" richColors duration={3000} />
+    </div>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <StoreProvider>
-        <Outlet />
-        <Toaster position="bottom-right" richColors duration={3000} />
-      </StoreProvider>
+      <CartProvider>
+        <MainLayout />
+      </CartProvider>
     </QueryClientProvider>
   );
 }

@@ -1,4 +1,4 @@
-/* PatchNature Design System */
+/* GREEN SHADE Design System */
 /* Google Fonts (Fraunces + Work Sans) loaded via <link> in __root.tsx */
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
@@ -32,7 +32,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  /* PatchNature Botanical Palette */
+  /* GREEN SHADE Palette */
   --color-nopal: var(--nopal);
   --color-cladode: var(--cladode);
   --color-aloe: var(--aloe);
@@ -53,13 +53,13 @@
 :root {
   --radius: 0.75rem;
 
-  /* PatchNature brand colors */
-  --nopal: #1F4D33;         /* Deep botanical green */
-  --cladode: #4C8C5F;       /* Medium leaf green */
-  --aloe: #8FBB9C;          /* Soft sage / light green */
-  --hydrogel: #EAF3EC;      /* Pale hydrogel mint */
-  --linen: #FAF8F3;         /* Warm linen off-white */
-  --encre: #1C2620;         /* Deep ink forest black */
+  /* GREEN SHADE brand colors */
+  --nopal: #2D5A3D;         /* Sage forest green (primary dark) */
+  --cladode: #6B9F7D;       /* Soft sage (primary accent) */
+  --aloe: #A8C5B0;          /* Pale sage (light accent) */
+  --hydrogel: #F0F5F1;      /* Cream-green tint (surfaces) */
+  --linen: #FAFAF7;         /* Warm cream (background) */
+  --encre: #1A1D1B;         /* Near-black (body text) */
 
   --background: var(--linen);
   --foreground: var(--encre);
