@@ -2,7 +2,8 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
-import { products, type Product } from "@/data/products";
+import type { Product } from "@/data/products";
+import { useProductsCatalog } from "@/lib/products-store";
 import { siteConfig } from "@/config/site";
 import { useCart } from "@/hooks/use-cart";
 import { ProductCard } from "@/components/products/ProductCard";
@@ -13,6 +14,7 @@ export const Route = createFileRoute("/produits")({
 });
 
 function ProductsPage() {
+  const { products } = useProductsCatalog();
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const { addItem } = useCart();

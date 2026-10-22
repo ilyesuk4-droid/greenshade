@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, ShieldCheck, Sparkles, Droplets, CheckCircle2, Phone, Instagram, Mail, Calendar, MapPin } from "lucide-react";
 import { siteConfig } from "@/config/site";
-import { products } from "@/data/products";
+import { useProductsCatalog } from "@/lib/products-store";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
 function HomePage() {
+  const { products } = useProductsCatalog();
   const featuredProducts = products.slice(0, 3);
 
   return (
